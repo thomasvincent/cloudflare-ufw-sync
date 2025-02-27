@@ -4,3 +4,32 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 10
+    target-branch: "develop"
+    versioning-strategy: "auto"
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    reviewers:
+      - "thomasvincent"
+    ignore:
+      - dependency-name: "*"
+        versions: ["< 1.0"]
+      - dependency-name: "example-package"
+        versions: [">= 2.0"]
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    target-branch: "develop"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
