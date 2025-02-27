@@ -1,0 +1,4 @@
+cloudflare:
+  api_key: your-api-key
+ufw:
+  default_policy: deny
