@@ -1,0 +1,14 @@
+dependencies:
+  - any: ['**/package.json', '**/package-lock.json', '**/yarn.lock', '**/requirements.txt', '**/Cargo.toml', '**/Cargo.lock', '**/go.mod', '**/go.sum', '**/Gemfile', '**/Gemfile.lock']
+
+documentation:
+  - any: ['**/*.md', '**/*.rst', 'docs/**/*']
+
+ci:
+  - any: ['.github/**/*', '.travis.yml', '.gitlab-ci.yml', 'azure-pipelines.yml', '.circleci/**/*']
+
+tests:
+  - any: ['**/test/**/*', '**/tests/**/*', '**/*_test.go', '**/*_spec.rb', '**/*.spec.js', '**/*.test.js']
+
+docker:
+  - any: ['**/Dockerfile', '**/docker-compose.yml', '**/docker-compose.yaml']
