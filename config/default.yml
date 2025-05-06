@@ -1,4 +1,19 @@
 cloudflare:
-  api_key: your-api-key
+  api_key: your-api-key  # Optional: Only needed if using authenticated endpoints
+  ip_types:
+    - v4  # IPv4 addresses
+    - v6  # IPv6 addresses
+
 ufw:
   default_policy: deny
+  port: 443  # The port to allow access to
+  proto: tcp  # Protocol (tcp, udp, or both)
+  comment: "Cloudflare IP"  # Comment for UFW rules
+
+sync:
+  interval: 86400  # Sync interval in seconds (default: 1 day)
+  enabled: true
+  
+logging:
+  level: INFO  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  file: /var/log/cloudflare-ufw-sync.log  # Optional: Log to file
