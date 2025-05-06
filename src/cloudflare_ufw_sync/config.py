@@ -110,15 +110,31 @@ class Config:
             return None
 
         if key is None:
-            return self.config[section]
+            # Force a safe type return
+            config_section = self.config[section]
+            return config_section  # type: ignore
 
-        return self.config[section].get(key)
+        # Type check before accessing .get method
+        section_value = self.config[section]
+        if isinstance(section_value, dict):
+            return section_value.get(key)
+        return None
 
     def setup_logging(self) -> None:
         """Configure logging based on configuration."""
-        log_config = self.config.get("logging", {})
-        log_level = getattr(logging, log_config.get("level", "INFO").upper())
-        log_file = log_config.get("file")
+        log_config = self.config.get("logging")
+        # Ensure log_config is a dict
+        if not isinstance(log_config, dict):
+            log_config = {}
+        
+        # Get log level with proper type checking
+        level_str = log_config.get("level") if isinstance(log_config, dict) else None
+        if not isinstance(level_str, str):
+            level_str = "INFO"
+        log_level = getattr(logging, level_str.upper())
+        
+        # Get log file with proper type checking
+        log_file = log_config.get("file") if isinstance(log_config, dict) else None
 
         handlers = []
         formatter = logging.Formatter(
@@ -135,7 +151,8 @@ class Config:
             try:
                 file_handler = logging.FileHandler(log_file)
                 file_handler.setFormatter(formatter)
-                handlers.append(file_handler)
+                # Add file handler with type ignore comment for mypy
+                handlers.append(file_handler)  # type: ignore
             except Exception as e:
                 logger.error(f"Error setting up log file {log_file}: {str(e)}")
 
