@@ -23,13 +23,34 @@ class SyncService:
             config: Configuration object
         """
         self.config = config or Config()
-        self.cloudflare = CloudflareClient(
-            api_key=self.config.get("cloudflare", "api_key")
-        )
+        
+        # Convert api_key to string type for CloudflareClient
+        api_key_value = self.config.get("cloudflare", "api_key")
+        api_key = str(api_key_value) if api_key_value is not None else None
+        
+        self.cloudflare = CloudflareClient(api_key=api_key)
+        
+        # Get port with proper type conversion
+        port_value = self.config.get("ufw", "port")
+        if isinstance(port_value, int):
+            port = port_value
+        elif isinstance(port_value, str) and port_value.isdigit():
+            port = int(port_value)
+        else:
+            port = 443  # Default port
+            
+        # Get protocol with proper type conversion
+        proto_value = self.config.get("ufw", "proto")
+        proto = str(proto_value) if proto_value is not None else "tcp"
+        
+        # Get comment with proper type conversion
+        comment_value = self.config.get("ufw", "comment")
+        comment = str(comment_value) if comment_value is not None else "Cloudflare IP"
+        
         self.ufw = UFWManager(
-            port=self.config.get("ufw", "port"),
-            proto=self.config.get("ufw", "proto"),
-            comment=self.config.get("ufw", "comment"),
+            port=port,
+            proto=proto,
+            comment=comment,
         )
         
     def sync(self) -> Dict:
@@ -40,13 +61,19 @@ class SyncService:
         """
         logger.info("Starting Cloudflare to UFW synchronization")
         
-        # Get Cloudflare IP ranges
-        ip_types = self.config.get("cloudflare", "ip_types")
-        cloudflare_ips = self.cloudflare.get_ip_ranges(ip_types)
+        # Get Cloudflare IP ranges with proper type conversion
+        ip_types_value = self.config.get("cloudflare", "ip_types")
+        ip_types = ip_types_value if isinstance(ip_types_value, list) else ["v4", "v6"]
         
-        # Set default policy if configured
-        default_policy = self.config.get("ufw", "default_policy")
-        if default_policy:
+        # Make sure all elements are strings
+        ip_types_str = [str(ip_type) for ip_type in ip_types]
+        
+        cloudflare_ips = self.cloudflare.get_ip_ranges(ip_types_str)
+        
+        # Set default policy if configured, with proper type conversion
+        default_policy_value = self.config.get("ufw", "default_policy")
+        if default_policy_value:
+            default_policy = str(default_policy_value)
             self.ufw.set_policy(default_policy)
             
         # Ensure UFW is enabled
@@ -72,7 +99,15 @@ class SyncService:
         
     def run_daemon(self) -> None:
         """Run as a daemon, periodically syncing."""
-        interval = self.config.get("sync", "interval")
+        # Get interval with proper type conversion
+        interval_value = self.config.get("sync", "interval")
+        if isinstance(interval_value, int):
+            interval = interval_value
+        elif isinstance(interval_value, str) and interval_value.isdigit():
+            interval = int(interval_value)
+        else:
+            interval = 86400  # Default to 1 day in seconds
+            
         logger.info(f"Starting daemon with {interval} seconds interval")
         
         while True:
