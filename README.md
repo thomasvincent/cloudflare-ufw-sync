@@ -102,18 +102,48 @@ source venv/bin/activate
 pip install -e ".[dev]"
 ```
 
-### Testing
+### Testing and Linting with Tox
+
+The project includes a `tox.ini` file that sets up environments for testing, linting, and type checking. This allows you to run the same checks locally that are performed in the CI pipeline before committing your changes.
 
 ```bash
-pytest
+# Install tox
+pip install tox
+
+# Run all tests and checks on all supported Python versions
+tox
+
+# Run tests for a specific Python version
+tox -e py38  # For Python 3.8
+tox -e py39  # For Python 3.9
+tox -e py310 # For Python 3.10
+tox -e py311 # For Python 3.11
+tox -e py312 # For Python 3.12
+
+# Run only linting checks
+tox -e lint
+
+# Run only type checking
+tox -e mypy
+
+# Format code
+tox -e format
 ```
 
-### Linting
+### Manual Testing
+
+If you prefer to run tests and linting manually:
 
 ```bash
+# Run tests
+pytest
+
+# Run linting
 black .
 isort .
 flake8
+
+# Run type checking
 mypy src
 ```
 
