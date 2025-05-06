@@ -1,2 +1,130 @@
-# cloudflare-ufw-sync
-Enterprise-grade Cloudflare UFW Sync
+# Cloudflare UFW Sync
+
+[![Python](https://img.shields.io/badge/Python-3.8%2B-blue)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Tests](https://github.com/thomasvincent/cloudflare-ufw-sync/actions/workflows/tests.yml/badge.svg)](https://github.com/thomasvincent/cloudflare-ufw-sync/actions/workflows/tests.yml)
+[![PyPI](https://img.shields.io/pypi/v/cloudflare-ufw-sync)](https://pypi.org/project/cloudflare-ufw-sync/)
+
+Enterprise-grade Cloudflare IP synchronization for UFW.
+
+## Overview
+
+`cloudflare-ufw-sync` is a robust tool designed to automatically synchronize Cloudflare's IP ranges with your UFW (Uncomplicated Firewall) rules. This ensures that only traffic coming from Cloudflare's network is allowed to access your web server.
+
+## Features
+
+- 🔄 Automatic synchronization of Cloudflare IP ranges with UFW rules
+- 🔒 Securely manages UFW rules with proper permission handling
+- 🛠️ Supports both IPv4 and IPv6 address ranges
+- 🔍 Detailed logging for audit and troubleshooting
+- 🔧 Customizable configuration
+- 🧪 Comprehensive test suite
+
+## Installation
+
+### From PyPI
+
+```bash
+pip install cloudflare-ufw-sync
+```
+
+### From Source
+
+```bash
+git clone https://github.com/thomasvincent/cloudflare-ufw-sync.git
+cd cloudflare-ufw-sync
+pip install .
+```
+
+## Configuration
+
+Create a configuration file at `/etc/cloudflare-ufw-sync/config.yml` or `~/.config/cloudflare-ufw-sync/config.yml`:
+
+```yaml
+cloudflare:
+  api_key: your-api-key  # Optional: Only needed if using authenticated endpoints
+  ip_types:
+    - v4  # IPv4 addresses
+    - v6  # IPv6 addresses
+
+ufw:
+  default_policy: deny
+  port: 443  # The port to allow access to
+  proto: tcp  # Protocol (tcp, udp, or both)
+  comment: "Cloudflare IP"  # Comment for UFW rules
+
+sync:
+  interval: 86400  # Sync interval in seconds (default: 1 day)
+  enabled: true
+```
+
+## Usage
+
+### Command Line
+
+```bash
+# Run a sync operation
+cloudflare-ufw-sync sync
+
+# Run in daemon mode
+cloudflare-ufw-sync daemon
+
+# View current status
+cloudflare-ufw-sync status
+```
+
+### As a Service
+
+A systemd service file is provided to run the synchronization as a service:
+
+```bash
+sudo cp scripts/cloudflare-ufw-sync.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable cloudflare-ufw-sync
+sudo systemctl start cloudflare-ufw-sync
+```
+
+## Development
+
+### Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/thomasvincent/cloudflare-ufw-sync.git
+cd cloudflare-ufw-sync
+
+# Set up a virtual environment
+python -m venv venv
+source venv/bin/activate
+
+# Install dev dependencies
+pip install -e ".[dev]"
+```
+
+### Testing
+
+```bash
+pytest
+```
+
+### Linting
+
+```bash
+black .
+isort .
+flake8
+mypy src
+```
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for security policy and reporting vulnerabilities.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.

@@ -1,0 +1,24 @@
+[Unit]
+Description=Cloudflare IP Synchronization for UFW
+After=network.target
+Documentation=https://github.com/thomasvincent/cloudflare-ufw-sync
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/cloudflare-ufw-sync daemon --foreground
+Restart=on-failure
+RestartSec=60
+User=root
+Group=root
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cloudflare-ufw-sync
+
+# Security enhancements
+ProtectSystem=full
+ReadWritePaths=/etc/ufw /var/log/cloudflare-ufw-sync
+CapabilityBoundingSet=CAP_NET_ADMIN
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
