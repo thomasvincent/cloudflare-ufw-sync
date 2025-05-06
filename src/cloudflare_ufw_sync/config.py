@@ -125,6 +125,10 @@ class Config:
         if isinstance(section_value, dict):
             return section_value.get(key)
         
+        logger.warning(
+            f"Configuration error: Section '{section}' is of type '{type(section_value).__name__}' "
+            f"but a dictionary was expected to retrieve key '{key}'. Returning None."
+        )
         return None
 
     def setup_logging(self) -> None:
