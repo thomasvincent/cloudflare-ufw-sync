@@ -1,0 +1,24 @@
+documentation:
+  - '**/*.md'
+  - 'docs/**/*'
+
+dependencies:
+  - 'requirements.txt'
+  - 'pyproject.toml'
+  - 'setup.py'
+
+tests:
+  - 'tests/**/*'
+
+source:
+  - 'src/**/*'
+
+workflows:
+  - '.github/workflows/**/*'
+
+docker:
+  - 'Dockerfile'
+  - 'docker-compose.yml'
+
+configuration:
+  - 'config/**/*'

@@ -8,7 +8,7 @@ updates:
       time: "09:00"
       timezone: "America/New_York"
     open-pull-requests-limit: 10
-    target-branch: "develop"
+    target-branch: "main"
     versioning-strategy: "auto"
     labels:
       - "dependencies"
@@ -18,18 +18,22 @@ updates:
       include: "scope"
     reviewers:
       - "thomasvincent"
+    assignees:
+      - "thomasvincent"
     ignore:
       - dependency-name: "*"
         versions: ["< 1.0"]
-      - dependency-name: "example-package"
-        versions: [">= 2.0"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "monthly"
-    target-branch: "develop"
+      interval: "weekly"
+    target-branch: "main"
     labels:
       - "dependencies"
       - "github-actions"
     commit-message:
       prefix: "ci"
+    reviewers:
+      - "thomasvincent"
+    assignees:
+      - "thomasvincent"

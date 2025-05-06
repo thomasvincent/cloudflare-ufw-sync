@@ -1,0 +1,17 @@
+name: Auto Assign to Project
+
+on:
+  issues:
+    types: [opened]
+  pull_request:
+    types: [opened]
+
+jobs:
+  assign_to_project:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assign issues and PRs to project
+        uses: actions/add-to-project@v0.6.0
+        with:
+          project-url: https://github.com/users/thomasvincent/projects/1
+          github-token: ${{ secrets.GITHUB_TOKEN }}

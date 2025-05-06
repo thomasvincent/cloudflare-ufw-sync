@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  cloudflare-ufw-sync:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    volumes:
+      - ./config:/app/config
+    environment:
+      - LOG_LEVEL=INFO

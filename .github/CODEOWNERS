@@ -1,0 +1,15 @@
+# Global owners
+*       @thomasvincent
+
+# Source code
+/src/   @thomasvincent
+
+# Tests
+/tests/ @thomasvincent
+
+# GitHub configurations
+/.github/ @thomasvincent
+
+# Documentation
+/*.md @thomasvincent
+/docs/ @thomasvincent
