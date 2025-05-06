@@ -1,0 +1,15 @@
+# These owners will be the default owners for everything in the repo
+* @thomasvincent
+
+# Python source files
+*.py @thomasvincent
+
+# CI/CD workflows
+/.github/workflows/ @thomasvincent
+
+# Documentation
+/docs/ @thomasvincent
+*.md @thomasvincent
+
+# Tests
+/tests/ @thomasvincent
