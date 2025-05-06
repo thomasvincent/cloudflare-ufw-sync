@@ -25,27 +25,18 @@ class SyncService:
         self.config = config or Config()
         
         # Convert api_key to string type for CloudflareClient
-        api_key_value = self.config.get("cloudflare", "api_key")
-        api_key = str(api_key_value) if api_key_value is not None else None
+        api_key = get_str_value(self.config.get("cloudflare", "api_key"))
         
         self.cloudflare = CloudflareClient(api_key=api_key)
         
         # Get port with proper type conversion
-        port_value = self.config.get("ufw", "port")
-        if isinstance(port_value, int):
-            port = port_value
-        elif isinstance(port_value, str) and port_value.isdigit():
-            port = int(port_value)
-        else:
-            port = 443  # Default port
+        port = get_int_value(self.config.get("ufw", "port"), default=443)
             
         # Get protocol with proper type conversion
-        proto_value = self.config.get("ufw", "proto")
-        proto = str(proto_value) if proto_value is not None else "tcp"
+        proto = get_str_value(self.config.get("ufw", "proto"), default="tcp")
         
         # Get comment with proper type conversion
-        comment_value = self.config.get("ufw", "comment")
-        comment = str(comment_value) if comment_value is not None else "Cloudflare IP"
+        comment = get_str_value(self.config.get("ufw", "comment"), default="Cloudflare IP")
         
         self.ufw = UFWManager(
             port=port,
