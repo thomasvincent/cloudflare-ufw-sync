@@ -4,13 +4,45 @@ Cloudflare to UFW synchronization service.
 
 import logging
 import time
-from typing import Dict, Optional, Set
+from typing import Dict, Optional, Set, Any, Union
 
 from cloudflare_ufw_sync.cloudflare import CloudflareClient
 from cloudflare_ufw_sync.config import Config
 from cloudflare_ufw_sync.ufw import UFWManager
 
 logger = logging.getLogger(__name__)
+
+
+def get_str_value(value: Any, default: str = "") -> str:
+    """Convert a value to string with a default value.
+    
+    Args:
+        value: The value to convert
+        default: Default value if conversion fails
+        
+    Returns:
+        Converted string value
+    """
+    if value is None:
+        return default
+    return str(value)
+
+
+def get_int_value(value: Any, default: int = 0) -> int:
+    """Convert a value to integer with a default value.
+    
+    Args:
+        value: The value to convert
+        default: Default value if conversion fails
+        
+    Returns:
+        Converted integer value
+    """
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.isdigit():
+        return int(value)
+    return default
 
 
 class SyncService:
@@ -26,12 +58,14 @@ class SyncService:
         
         # Convert api_key to string type for CloudflareClient
         api_key = get_str_value(self.config.get("cloudflare", "api_key"))
+        # Special case - we want None for api_key if it's empty
+        api_key = None if not api_key else api_key
         
         self.cloudflare = CloudflareClient(api_key=api_key)
         
         # Get port with proper type conversion
         port = get_int_value(self.config.get("ufw", "port"), default=443)
-            
+        
         # Get protocol with proper type conversion
         proto = get_str_value(self.config.get("ufw", "proto"), default="tcp")
         
@@ -57,14 +91,13 @@ class SyncService:
         ip_types = ip_types_value if isinstance(ip_types_value, list) else ["v4", "v6"]
         
         # Make sure all elements are strings
-        ip_types_str = [str(ip_type) for ip_type in ip_types]
+        ip_types_str = [get_str_value(ip_type) for ip_type in ip_types]
         
         cloudflare_ips = self.cloudflare.get_ip_ranges(ip_types_str)
         
         # Set default policy if configured, with proper type conversion
-        default_policy_value = self.config.get("ufw", "default_policy")
-        if default_policy_value:
-            default_policy = str(default_policy_value)
+        default_policy = get_str_value(self.config.get("ufw", "default_policy"))
+        if default_policy:
             self.ufw.set_policy(default_policy)
             
         # Ensure UFW is enabled
@@ -91,13 +124,7 @@ class SyncService:
     def run_daemon(self) -> None:
         """Run as a daemon, periodically syncing."""
         # Get interval with proper type conversion
-        interval_value = self.config.get("sync", "interval")
-        if isinstance(interval_value, int):
-            interval = interval_value
-        elif isinstance(interval_value, str) and interval_value.isdigit():
-            interval = int(interval_value)
-        else:
-            interval = 86400  # Default to 1 day in seconds
+        interval = get_int_value(self.config.get("sync", "interval"), default=86400)
             
         logger.info(f"Starting daemon with {interval} seconds interval")
         
