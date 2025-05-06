@@ -89,8 +89,13 @@ class Config:
         """
         for section, values in user_config.items():
             if section in self.config:
-                if isinstance(self.config[section], dict) and isinstance(values, dict):
-                    self.config[section].update(values)
+                # Type check to ensure both are dicts before updating
+                config_section = self.config[section]
+                if isinstance(config_section, dict) and isinstance(values, dict):
+                    # Create a safe copy to update
+                    updated_section = dict(config_section)
+                    updated_section.update(values)
+                    self.config[section] = updated_section
                 else:
                     self.config[section] = values
             else:
@@ -109,45 +114,63 @@ class Config:
         if section not in self.config:
             return None
 
+        section_value = self.config[section]
+        
         if key is None:
-            return self.config[section]
+            if isinstance(section_value, (dict, list, str, int, bool)) or section_value is None:
+                return section_value
+            return None  # Return None for unsupported types
 
-        return self.config[section].get(key)
+        # Only try to get a key if section_value is a dict
+        if isinstance(section_value, dict):
+            return section_value.get(key)
+        
+        logger.warning(
+            f"Configuration error: Section '{section}' is of type '{type(section_value).__name__}' "
+            f"but a dictionary was expected to retrieve key '{key}'. Returning None."
+        )
+        return None
 
     def setup_logging(self) -> None:
         """Configure logging based on configuration."""
-        log_config = self.config.get("logging", {})
-        log_level = getattr(logging, log_config.get("level", "INFO").upper())
-        log_file = log_config.get("file")
+        log_config_value = self.config.get("logging", {})
+        # Ensure log_config is a dict
+        log_config = log_config_value if isinstance(log_config_value, dict) else {}
+        
+        # Get log level with proper type conversion
+        level_value = log_config.get("level", "INFO")
+        level_str = str(level_value).upper() if level_value is not None else "INFO"
+        log_level = getattr(logging, level_str)
+        
+        # Get log file with proper type conversion
+        log_file_value = log_config.get("file")
+        log_file = str(log_file_value) if log_file_value is not None else None
 
-        handlers = []
+        # Create formatter
         formatter = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         )
 
+        # Configure root logger
+        root_logger = logging.getLogger()
+        root_logger.setLevel(log_level)
+
+        # Remove existing handlers
+        for handler in root_logger.handlers[:]:
+            root_logger.removeHandler(handler)
+
         # Always add console handler
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(formatter)
-        handlers.append(console_handler)
+        root_logger.addHandler(console_handler)
 
         # Add file handler if configured
         if log_file:
             try:
                 file_handler = logging.FileHandler(log_file)
                 file_handler.setFormatter(formatter)
-                handlers.append(file_handler)
+                root_logger.addHandler(file_handler)
             except Exception as e:
                 logger.error(f"Error setting up log file {log_file}: {str(e)}")
-
-        # Configure root logger
-        root_logger = logging.getLogger()
-        root_logger.setLevel(log_level)
-
-        # Remove existing handlers and add new ones
-        for handler in root_logger.handlers[:]:
-            root_logger.removeHandler(handler)
-
-        for handler in handlers:
-            root_logger.addHandler(handler)
 
         logger.debug("Logging configured")
