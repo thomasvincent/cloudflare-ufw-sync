@@ -4,7 +4,7 @@ Cloudflare to UFW synchronization service.
 
 import logging
 import time
-from typing import Dict, Optional, Set, Any, Union
+from typing import Dict, Optional, Set, Any, Union, List
 
 from cloudflare_ufw_sync.cloudflare import CloudflareClient
 from cloudflare_ufw_sync.config import Config
@@ -57,9 +57,9 @@ class SyncService:
         self.config = config or Config()
         
         # Convert api_key to string type for CloudflareClient
-        api_key = get_str_value(self.config.get("cloudflare", "api_key"))
+        api_key_str = get_str_value(self.config.get("cloudflare", "api_key"))
         # Special case - we want None for api_key if it's empty
-        api_key = None if not api_key else api_key
+        api_key: Optional[str] = None if not api_key_str else api_key_str
         
         self.cloudflare = CloudflareClient(api_key=api_key)
         
@@ -78,7 +78,7 @@ class SyncService:
             comment=comment,
         )
         
-    def sync(self) -> Dict:
+    def sync(self) -> Dict[str, Any]:
         """Synchronize Cloudflare IP ranges with UFW rules.
 
         Returns:
@@ -88,12 +88,12 @@ class SyncService:
         
         # Get Cloudflare IP ranges with proper type conversion
         ip_types_value = self.config.get("cloudflare", "ip_types")
-        ip_types = ip_types_value if isinstance(ip_types_value, list) else ["v4", "v6"]
+        ip_types: List[str] = ip_types_value if isinstance(ip_types_value, list) else ["v4", "v6"]
         
         # Make sure all elements are strings
         ip_types_str = [get_str_value(ip_type) for ip_type in ip_types]
         
-        cloudflare_ips = self.cloudflare.get_ip_ranges(ip_types_str)
+        cloudflare_ips: Dict[str, Set[str]] = self.cloudflare.get_ip_ranges(ip_types_str)
         
         # Set default policy if configured, with proper type conversion
         default_policy = get_str_value(self.config.get("ufw", "default_policy"))
@@ -106,7 +106,7 @@ class SyncService:
         # Sync rules
         added, removed = self.ufw.sync_rules(cloudflare_ips)
         
-        result = {
+        result: Dict[str, Any] = {
             "status": "success",
             "ips": {
                 "v4": len(cloudflare_ips.get("v4", set())),
