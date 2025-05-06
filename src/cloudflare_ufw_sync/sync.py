@@ -29,7 +29,13 @@ class SyncService:
         
         # Get UFW parameters with proper type conversion
         port_value = self.config.get("ufw", "port")
-        port = int(port_value) if port_value is not None else 443
+        # Handle different types before conversion
+        if isinstance(port_value, int):
+            port = port_value
+        elif isinstance(port_value, str) and port_value.isdigit():
+            port = int(port_value)
+        else:
+            port = 443
         
         proto_value = self.config.get("ufw", "proto")
         proto = str(proto_value) if proto_value is not None else "tcp"
@@ -90,7 +96,13 @@ class SyncService:
         """Run as a daemon, periodically syncing."""
         # Get interval with proper type conversion
         interval_value = self.config.get("sync", "interval")
-        interval = int(interval_value) if interval_value is not None else 86400
+        # Handle different types before conversion
+        if isinstance(interval_value, int):
+            interval = interval_value
+        elif isinstance(interval_value, str) and interval_value.isdigit():
+            interval = int(interval_value)
+        else:
+            interval = 86400
         logger.info(f"Starting daemon with {interval} seconds interval")
         
         while True:

@@ -113,7 +113,9 @@ class Config:
             return None
 
         if key is None:
-            return self.config[section]
+            # Force a safe type return
+            config_section = self.config[section]
+            return config_section  # type: ignore
 
         # Type check before accessing .get method
         section_value = self.config[section]
