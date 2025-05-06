@@ -23,13 +23,25 @@ class SyncService:
             config: Configuration object
         """
         self.config = config or Config()
-        self.cloudflare = CloudflareClient(
-            api_key=self.config.get("cloudflare", "api_key")
-        )
+        # Get API key with proper type conversion
+        api_key_value = self.config.get("cloudflare", "api_key")
+        api_key = str(api_key_value) if api_key_value is not None else None
+        
+        # Get UFW parameters with proper type conversion
+        port_value = self.config.get("ufw", "port")
+        port = int(port_value) if port_value is not None else 443
+        
+        proto_value = self.config.get("ufw", "proto")
+        proto = str(proto_value) if proto_value is not None else "tcp"
+        
+        comment_value = self.config.get("ufw", "comment")
+        comment = str(comment_value) if comment_value is not None else "Cloudflare IP"
+        
+        self.cloudflare = CloudflareClient(api_key=api_key)
         self.ufw = UFWManager(
-            port=self.config.get("ufw", "port"),
-            proto=self.config.get("ufw", "proto"),
-            comment=self.config.get("ufw", "comment"),
+            port=port,
+            proto=proto,
+            comment=comment,
         )
         
     def sync(self) -> Dict:
@@ -41,11 +53,15 @@ class SyncService:
         logger.info("Starting Cloudflare to UFW synchronization")
         
         # Get Cloudflare IP ranges
-        ip_types = self.config.get("cloudflare", "ip_types")
+        # Get IP types with proper type conversion
+        ip_types_value = self.config.get("cloudflare", "ip_types")
+        ip_types = ip_types_value if isinstance(ip_types_value, list) else ["v4", "v6"]
         cloudflare_ips = self.cloudflare.get_ip_ranges(ip_types)
         
         # Set default policy if configured
-        default_policy = self.config.get("ufw", "default_policy")
+        # Get default policy with proper type conversion
+        policy_value = self.config.get("ufw", "default_policy")
+        default_policy = str(policy_value) if policy_value is not None else "deny"
         if default_policy:
             self.ufw.set_policy(default_policy)
             
@@ -72,7 +88,9 @@ class SyncService:
         
     def run_daemon(self) -> None:
         """Run as a daemon, periodically syncing."""
-        interval = self.config.get("sync", "interval")
+        # Get interval with proper type conversion
+        interval_value = self.config.get("sync", "interval")
+        interval = int(interval_value) if interval_value is not None else 86400
         logger.info(f"Starting daemon with {interval} seconds interval")
         
         while True:
