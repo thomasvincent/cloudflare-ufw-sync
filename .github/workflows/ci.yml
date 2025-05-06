@@ -2,17 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
-    paths-ignore:
-      - '**.md'
-      - 'LICENSE'
-      - '.gitignore'
+    branches: [ main, 'fix/**', 'feature/**' ]
   pull_request:
-    branches: [main]
-    paths-ignore:
-      - '**.md'
-      - 'LICENSE'
-      - '.gitignore'
+    branches: [ main ]
 
 jobs:
   test:
