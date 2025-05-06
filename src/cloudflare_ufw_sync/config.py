@@ -89,8 +89,13 @@ class Config:
         """
         for section, values in user_config.items():
             if section in self.config:
-                if isinstance(self.config[section], dict) and isinstance(values, dict):
-                    self.config[section].update(values)
+                # Type check to ensure both are dicts before updating
+                config_section = self.config[section]
+                if isinstance(config_section, dict) and isinstance(values, dict):
+                    # Create a safe copy to update
+                    updated_section = dict(config_section)
+                    updated_section.update(values)
+                    self.config[section] = updated_section
                 else:
                     self.config[section] = values
             else:
