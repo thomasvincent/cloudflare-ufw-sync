@@ -76,6 +76,7 @@ class UFWManager:
             logger.error("Failed to get UFW rules")
             return {"v4": set(), "v6": set()}
             
+        # Initialize empty sets for IPv4 and IPv6 ranges
         ip_ranges: Dict[str, Set[str]] = {"v4": set(), "v6": set()}
         
         # Parse UFW output to extract rules
