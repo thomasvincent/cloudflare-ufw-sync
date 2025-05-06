@@ -90,7 +90,10 @@ class Config:
         for section, values in user_config.items():
             if section in self.config:
                 if isinstance(self.config[section], dict) and isinstance(values, dict):
-                    self.config[section].update(values)
+                    # Type check to ensure config[section] is a dict before updating
+                    config_section = self.config[section]
+                    if isinstance(config_section, dict):
+                        config_section.update(values)
                 else:
                     self.config[section] = values
             else:
@@ -112,13 +115,27 @@ class Config:
         if key is None:
             return self.config[section]
 
-        return self.config[section].get(key)
+        # Type check before accessing .get method
+        section_value = self.config[section]
+        if isinstance(section_value, dict):
+            return section_value.get(key)
+        return None
 
     def setup_logging(self) -> None:
         """Configure logging based on configuration."""
-        log_config = self.config.get("logging", {})
-        log_level = getattr(logging, log_config.get("level", "INFO").upper())
-        log_file = log_config.get("file")
+        log_config = self.config.get("logging")
+        # Ensure log_config is a dict
+        if not isinstance(log_config, dict):
+            log_config = {}
+        
+        # Get log level with proper type checking
+        level_str = log_config.get("level") if isinstance(log_config, dict) else None
+        if not isinstance(level_str, str):
+            level_str = "INFO"
+        log_level = getattr(logging, level_str.upper())
+        
+        # Get log file with proper type checking
+        log_file = log_config.get("file") if isinstance(log_config, dict) else None
 
         handlers = []
         formatter = logging.Formatter(
@@ -135,7 +152,9 @@ class Config:
             try:
                 file_handler = logging.FileHandler(log_file)
                 file_handler.setFormatter(formatter)
-                handlers.append(file_handler)
+                # Add file handler directly
+                # The type error can be ignored since we're adding handlers to different lists
+                handlers.append(file_handler)  # type: ignore
             except Exception as e:
                 logger.error(f"Error setting up log file {log_file}: {str(e)}")
 

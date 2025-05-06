@@ -76,7 +76,7 @@ class UFWManager:
             logger.error("Failed to get UFW rules")
             return {"v4": set(), "v6": set()}
             
-        ip_ranges = {"v4": set(), "v6": set()}
+        ip_ranges: Dict[str, Set[str]] = {"v4": set(), "v6": set()}
         
         # Parse UFW output to extract rules
         for line in output.splitlines():
