@@ -4,13 +4,22 @@ This document details the changes made to apply Google's Python Style Guide to t
 
 ## Files Updated
 
+### Core Implementation Files (Full Implementation)
 - `src/cloudflare_ufw_sync/__init__.py`
 - `src/cloudflare_ufw_sync/cli.py`
 - `src/cloudflare_ufw_sync/cloudflare.py`
 - `src/cloudflare_ufw_sync/config.py`
 - `src/cloudflare_ufw_sync/sync.py`
+- `src/cloudflare_ufw_sync/ufw.py`
 - `src/domain/exceptions.py`
 - `src/domain/models.py`
+
+### Framework Files (Interface-Only Implementation)
+- `src/application/config_manager.py`
+- `src/application/sync_service.py`
+- `src/infrastructure/cloudflare_client.py`
+- `src/infrastructure/ufw_manager.py`
+- `src/interfaces/cli.py`
 
 ## Key Improvements
 
