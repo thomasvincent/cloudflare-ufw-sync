@@ -1,5 +1,7 @@
-"""
-Command line interface for cloudflare-ufw-sync.
+"""Command line interface for cloudflare-ufw-sync.
+
+This module provides the command-line interface for the cloudflare-ufw-sync tool.
+It handles argument parsing and dispatches to the appropriate handler functions.
 """
 
 import argparse
@@ -7,7 +9,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from cloudflare_ufw_sync import __version__
 from cloudflare_ufw_sync.config import Config
@@ -20,68 +22,100 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
     """Parse command line arguments.
 
     Args:
-        args: Command line arguments
+        args: Command line arguments. If None, sys.argv[1:] is used.
 
     Returns:
-        Parsed arguments
+        Parsed arguments as an argparse.Namespace object.
     """
     parser = argparse.ArgumentParser(
         description="Cloudflare IP synchronization for UFW"
     )
     parser.add_argument(
-        "--version", action="version", version=f"%(prog)s {__version__}"
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}"
     )
     parser.add_argument(
         "--config",
         "-c",
         type=str,
-        help="Path to configuration file",
+        help="Path to configuration file"
     )
-    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
+    parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Verbose output"
+    )
 
-    subparsers = parser.add_subparsers(dest="command", help="Command to run")
+    subparsers = parser.add_subparsers(
+        dest="command",
+        help="Command to run"
+    )
 
     # Sync command
-    sync_parser = subparsers.add_parser("sync", help="Synchronize Cloudflare IPs with UFW")
+    sync_parser = subparsers.add_parser(
+        "sync",
+        help="Synchronize Cloudflare IPs with UFW"
+    )
     sync_parser.add_argument(
-        "--force", "-f", action="store_true", help="Force synchronization"
+        "--force",
+        "-f",
+        action="store_true",
+        help="Force synchronization"
     )
 
     # Daemon command
-    daemon_parser = subparsers.add_parser("daemon", help="Run as a daemon")
+    daemon_parser = subparsers.add_parser(
+        "daemon",
+        help="Run as a daemon"
+    )
     daemon_parser.add_argument(
-        "--foreground", action="store_true", help="Run in foreground"
+        "--foreground",
+        action="store_true",
+        help="Run in foreground"
     )
 
     # Status command
-    subparsers.add_parser("status", help="Show status")
+    subparsers.add_parser(
+        "status",
+        help="Show status"
+    )
 
     # Install command
-    install_parser = subparsers.add_parser("install", help="Install as a service")
+    install_parser = subparsers.add_parser(
+        "install",
+        help="Install as a service"
+    )
     install_parser.add_argument(
-        "--no-enable", action="store_true", help="Don't enable service"
+        "--no-enable",
+        action="store_true",
+        help="Don't enable service"
     )
 
     # Uninstall command
-    subparsers.add_parser("uninstall", help="Uninstall service")
+    subparsers.add_parser(
+        "uninstall",
+        help="Uninstall service"
+    )
 
     return parser.parse_args(args)
 
 
 def handle_sync(config: Config, force: bool = False) -> int:
-    """Handle sync command.
+    """Handle the sync command to synchronize Cloudflare IP ranges with UFW.
 
     Args:
-        config: Configuration object
-        force: Force synchronization
+        config: Configuration object containing sync settings.
+        force: Whether to force synchronization even if not needed.
 
     Returns:
-        Exit code
+        int: Exit code - 0 for success, 1 for failure.
     """
     sync_service = SyncService(config)
     try:
         result = sync_service.sync()
-        print(f"Synchronization completed:")
+        print("Synchronization completed:")
         print(f"  IPv4 ranges: {result['ips']['v4']}")
         print(f"  IPv6 ranges: {result['ips']['v6']}")
         print(f"  Rules added: {result['rules']['added']}")
@@ -93,14 +127,17 @@ def handle_sync(config: Config, force: bool = False) -> int:
 
 
 def handle_daemon(config: Config, foreground: bool = False) -> int:
-    """Handle daemon command.
+    """Handle the daemon command to run the service in background or foreground.
+
+    Forks the process unless foreground mode is requested. The daemon
+    continuously monitors and updates UFW rules based on Cloudflare IP changes.
 
     Args:
-        config: Configuration object
-        foreground: Run in foreground
+        config: Configuration object containing daemon settings.
+        foreground: Whether to run in foreground (True) or background (False).
 
     Returns:
-        Exit code
+        int: Exit code - 0 for success, 1 for failure.
     """
     if not foreground and os.fork() > 0:
         # Parent process
@@ -117,17 +154,20 @@ def handle_daemon(config: Config, foreground: bool = False) -> int:
 
 
 def handle_status(config: Config) -> int:
-    """Handle status command.
+    """Handle the status command to display current UFW rules for Cloudflare IPs.
+
+    Retrieves current UFW rules and displays summary statistics.
 
     Args:
-        config: Configuration object
+        config: Configuration object containing status settings.
 
     Returns:
-        Exit code
+        int: Exit code - 0 for success, 1 for failure.
     """
-    # Check if UFW is enabled
     try:
+        # Import locally to avoid circular imports
         from cloudflare_ufw_sync.ufw import UFWManager
+        
         ufw = UFWManager()
         existing_rules = ufw.get_existing_rules()
         print("Cloudflare UFW Sync Status:")
@@ -140,14 +180,17 @@ def handle_status(config: Config) -> int:
 
 
 def handle_install(config: Config, no_enable: bool = False) -> int:
-    """Handle install command.
+    """Handle the install command to set up the service as a systemd unit.
+
+    Installs the service file, reloads systemd, and optionally enables and
+    starts the service.
 
     Args:
-        config: Configuration object
-        no_enable: Don't enable service
+        config: Configuration object containing installation settings.
+        no_enable: If True, don't enable and start the service after installation.
 
     Returns:
-        Exit code
+        int: Exit code - 0 for success, 1 for failure.
     """
     # Get the script directory
     script_dir = Path(__file__).resolve().parent.parent.parent / "scripts"
@@ -171,9 +214,15 @@ def handle_install(config: Config, no_enable: bool = False) -> int:
         
         if not no_enable:
             # Enable and start service
-            subprocess.run(["systemctl", "enable", "cloudflare-ufw-sync"], check=True)
+            subprocess.run(
+                ["systemctl", "enable", "cloudflare-ufw-sync"],
+                check=True
+            )
             print("Service enabled")
-            subprocess.run(["systemctl", "start", "cloudflare-ufw-sync"], check=True)
+            subprocess.run(
+                ["systemctl", "start", "cloudflare-ufw-sync"],
+                check=True
+            )
             print("Service started")
             
         return 0
@@ -183,21 +232,30 @@ def handle_install(config: Config, no_enable: bool = False) -> int:
 
 
 def handle_uninstall(config: Config) -> int:
-    """Handle uninstall command.
+    """Handle the uninstall command to remove the systemd service.
+
+    Stops the service if running, disables it from auto-starting,
+    removes the service file, and reloads systemd.
 
     Args:
-        config: Configuration object
+        config: Configuration object containing uninstallation settings.
 
     Returns:
-        Exit code
+        int: Exit code - 0 for success, 1 for failure.
     """
     try:
         import subprocess
         
         # Stop and disable service
-        subprocess.run(["systemctl", "stop", "cloudflare-ufw-sync"], check=False)
+        subprocess.run(
+            ["systemctl", "stop", "cloudflare-ufw-sync"],
+            check=False
+        )
         print("Service stopped")
-        subprocess.run(["systemctl", "disable", "cloudflare-ufw-sync"], check=False)
+        subprocess.run(
+            ["systemctl", "disable", "cloudflare-ufw-sync"],
+            check=False
+        )
         print("Service disabled")
         
         # Remove service file
@@ -217,13 +275,16 @@ def handle_uninstall(config: Config) -> int:
 
 
 def main(args: Optional[List[str]] = None) -> int:
-    """Main entry point.
+    """Main entry point for the command-line interface.
+
+    Parses arguments, sets up configuration and logging, and dispatches to
+    the appropriate command handler.
 
     Args:
-        args: Command line arguments
+        args: Command line arguments. If None, sys.argv[1:] is used.
 
     Returns:
-        Exit code
+        int: Exit code - 0 for success, 1 for failure.
     """
     parsed_args = parse_args(args)
     
