@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Tests](https://github.com/thomasvincent/cloudflare-ufw-sync/actions/workflows/tests.yml/badge.svg)](https://github.com/thomasvincent/cloudflare-ufw-sync/actions/workflows/tests.yml)
-[![PyPI](https://img.shields.io/pypi/v/cloudflare-ufw-sync)](https://pypi.org/project/cloudflare-ufw-sync/)
+[![GitHub release](https://img.shields.io/github/v/release/thomasvincent/cloudflare-ufw-sync)](https://github.com/thomasvincent/cloudflare-ufw-sync/releases)
 
 Enterprise-grade Cloudflare IP synchronization for UFW.
 
@@ -22,12 +22,6 @@ Enterprise-grade Cloudflare IP synchronization for UFW.
 - 🧪 Comprehensive test suite
 
 ## Installation
-
-### From PyPI
-
-```bash
-pip install cloudflare-ufw-sync
-```
 
 ### From Source
 
@@ -155,6 +149,41 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 See [SECURITY.md](SECURITY.md) for security policy and reporting vulnerabilities.
 
+## Requirements
+
+- Python 3.8 or higher
+- Linux with UFW (Uncomplicated Firewall) installed
+- Root/sudo access for managing firewall rules
+- Internet connectivity to fetch Cloudflare IP ranges
+
+## How It Works
+
+1. **Fetches IP Ranges**: The tool connects to Cloudflare's API to retrieve the latest IP ranges (both IPv4 and IPv6)
+2. **Manages UFW Rules**: It automatically adds UFW rules to allow traffic from Cloudflare IPs on specified ports
+3. **Synchronization**: Removes outdated rules and adds new ones as Cloudflare's IP ranges change
+4. **Daemon Mode**: Can run continuously to keep rules updated automatically
+
+## Use Cases
+
+- **Web Servers**: Ensure only Cloudflare can access your origin server
+- **API Endpoints**: Protect API servers behind Cloudflare's proxy
+- **Load Balancers**: Secure load balancers that should only accept Cloudflare traffic
+- **Security Compliance**: Meet security requirements for IP whitelisting
+
+## Troubleshooting
+
+If you encounter issues:
+
+1. **Check UFW is installed**: `sudo ufw status`
+2. **Verify Python version**: `python3 --version` (must be 3.8+)
+3. **Test Cloudflare API access**: `curl https://api.cloudflare.com/client/v4/ips`
+4. **Check logs**: The tool provides detailed logging for debugging
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Support
+
+- **Issues**: [GitHub Issues](https://github.com/thomasvincent/cloudflare-ufw-sync/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/thomasvincent/cloudflare-ufw-sync/discussions)
