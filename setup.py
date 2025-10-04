@@ -23,7 +23,7 @@ dev_requires = [
 
 setup(
     name="cloudflare-ufw-sync",
-    version="0.1.0",
+    version="1.0.0",
     author="Thomas Vincent",
     author_email="info@thomasvincent.xyz",
     description="Enterprise-grade Cloudflare IP synchronization for UFW",
