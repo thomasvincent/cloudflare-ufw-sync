@@ -6,6 +6,17 @@ on:
   pull_request:
     types: [opened, labeled]
   
+
+# Cancel previous runs on the same PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+
+# Minimal permissions by default
+permissions:
+  contents: read
+
 jobs:
   assign_to_project:
     runs-on: ubuntu-latest

@@ -8,10 +8,17 @@ on:
   schedule:
     - cron: '0 0 * * 0'
 
+# Cancel previous runs on the same PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+
 jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
+    timeout-minutes: 15  # Prevent hung jobs
     permissions:
       actions: read
       contents: read
