@@ -18,7 +18,11 @@ logger = logging.getLogger(__name__)
 
 
 def get_str_value(value: Any, default: str = "") -> str:
-    """Convert any value to a string with a default value.
+    """Convert any value to a friendly string.
+    
+    A tiny bit of hand-holding for config values that might arrive as numbers,
+    strings, or environment-expanded values. If it's missing, we hand back a
+    sensible default instead of making the caller guess.
     
     Args:
         value: The value to convert to a string.
@@ -33,7 +37,10 @@ def get_str_value(value: Any, default: str = "") -> str:
 
 
 def get_int_value(value: Any, default: int = 0) -> int:
-    """Convert a value to an integer with a default value.
+    """Convert value to int without being grumpy about types.
+    
+    This lets config stay human-friendly ("443" is fine) while keeping runtime
+    types strict. If we can't make sense of it, we calmly return the default.
     
     Args:
         value: The value to convert to an integer.

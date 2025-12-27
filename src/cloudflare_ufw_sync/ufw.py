@@ -115,6 +115,10 @@ class UFWManager:
                 continue
                 
             # Extract IP from rule using regex
+            # Little regex decoder ring:
+            # - We look for lines like: "ALLOW IN tcp/443 from 203.0.113.0/24"
+            # - Group 1 captures the proto/port bit (e.g. tcp/443)
+            # - Group 2 captures the source IP/CIDR
             ip_match = re.search(r"ALLOW\s+IN\s+(\S+)\s+from\s+(\S+)", line)
             if not ip_match:
                 continue
