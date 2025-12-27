@@ -48,6 +48,14 @@ def test_setup_logging_file_success(tmp_path):
     # File should exist and be non-empty after a log write
     assert log_file.exists()
 
+
+def test_setup_logging_invalid_level_falls_back_to_info(caplog):
+    cfg = Config()
+    cfg.config["logging"] = {"level": "not-a-level"}
+    with caplog.at_level("WARNING"):
+        cfg.setup_logging()
+        assert any("Invalid log level" in line for line in caplog.text.splitlines())
+
     def test_default_config(self):
         """Test that default configuration is loaded correctly."""
         config = Config()

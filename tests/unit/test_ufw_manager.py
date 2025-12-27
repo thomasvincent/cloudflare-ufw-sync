@@ -125,6 +125,23 @@ def test_get_existing_rules_ignores_malformed_lines(mock_run):
 
 
 @patch("cloudflare_ufw_sync.ufw.subprocess.run")
+def test_get_existing_rules_ignores_other_ports(mock_run):
+    """Rules that match the comment but different port/proto should be ignored."""
+    mock_run.side_effect = [
+        MagicMock(),
+        MagicMock(stdout="""
+[ 1] 203.0.113.0/24  ALLOW IN  tcp/80  from 203.0.113.0/24  # Cloudflare IP
+[ 2] 2001:db8::/32   ALLOW IN  tcp/443 from 2001:db8::/32   # Cloudflare IP
+"""),
+    ]
+    ufw = UFWManager(port=443, proto="tcp", comment="Cloudflare IP")
+    rules = ufw.get_existing_rules()
+    # tcp/80 should be ignored; tcp/443 kept
+    assert "203.0.113.0/24" not in rules["v4"]
+    assert "2001:db8::/32" in rules["v6"]
+
+
+@patch("cloudflare_ufw_sync.ufw.subprocess.run")
 def test_delete_rule_not_found_returns_false(mock_run):
     """If we can't find a rule number, we fail gracefully and return False."""
     mock_run.side_effect = [

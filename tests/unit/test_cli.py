@@ -32,6 +32,38 @@ def test_main_no_command_returns_1():
     assert main([]) == 1
 
 
+@patch("cloudflare_ufw_sync.cli.handle_sync", return_value=0)
+def test_main_dispatch_sync(mock_handle):
+    rc = main(["sync"])  # no --force, just default
+    assert rc == 0
+    assert mock_handle.called
+
+
+@patch("cloudflare_ufw_sync.cli.handle_daemon", return_value=0)
+def test_main_dispatch_daemon_foreground(mock_handle):
+    rc = main(["daemon", "--foreground"])  # avoid any forking path
+    assert rc == 0
+    mock_handle.assert_called_once()
+
+
+@patch("cloudflare_ufw_sync.cli.handle_status", return_value=0)
+def test_main_dispatch_status(mock_handle):
+    assert main(["status"]) == 0
+    mock_handle.assert_called_once()
+
+
+@patch("cloudflare_ufw_sync.cli.handle_install", return_value=0)
+def test_main_dispatch_install_no_enable(mock_handle):
+    assert main(["install", "--no-enable"]) == 0
+    mock_handle.assert_called_once()
+
+
+@patch("cloudflare_ufw_sync.cli.handle_uninstall", return_value=0)
+def test_main_dispatch_uninstall(mock_handle):
+    assert main(["uninstall"]) == 0
+    mock_handle.assert_called_once()
+
+
 @patch("cloudflare_ufw_sync.cli.SyncService")
 def test_handle_sync_success(mock_sync_service_cls):
     """A successful sync returns exit code 0 and prints a friendly summary."""
