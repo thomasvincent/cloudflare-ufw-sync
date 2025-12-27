@@ -105,3 +105,54 @@ def test_handle_uninstall_success(mock_path_cls, mock_run):
     # stop/disable may be non-checking; we just ensure daemon reload is called
     mock_run.assert_any_call(["systemctl", "daemon-reload"], check=True)
     assert mock_service_file.unlink.called
+
+
+@patch("cloudflare_ufw_sync.cli.SyncService")
+@patch("cloudflare_ufw_sync.cli.os.fork", return_value=1234)
+def test_handle_daemon_parent_returns_immediately(mock_fork, mock_sync_cls):
+    """When not in foreground, parent process should return 0 and not run daemon."""
+    rc = __import__("cloudflare_ufw_sync.cli", fromlist=["handle_daemon"]).handle_daemon(
+        Config(), foreground=False
+    )
+    assert rc == 0
+    mock_sync_cls.assert_not_called()
+
+
+@patch("cloudflare_ufw_sync.cli.SyncService")
+def test_handle_daemon_foreground_calls_run(mock_sync_cls):
+    """Foreground mode should call SyncService.run_daemon and return 0."""
+    mock_service = MagicMock()
+    mock_sync_cls.return_value = mock_service
+    rc = __import__("cloudflare_ufw_sync.cli", fromlist=["handle_daemon"]).handle_daemon(
+        Config(), foreground=True
+    )
+    assert rc == 0
+    mock_service.run_daemon.assert_called_once()
+
+
+@patch("cloudflare_ufw_sync.cli.SyncService")
+def test_handle_sync_error_path(mock_sync_cls):
+    """If sync() raises, handler should return 1 and log an error (no exception)."""
+    mock_service = MagicMock()
+    mock_service.sync.side_effect = RuntimeError("boom")
+    mock_sync_cls.return_value = mock_service
+    rc = handle_sync(Config(), force=False)
+    assert rc == 1
+
+
+@patch("subprocess.run")
+@patch("shutil.copy")
+@patch("cloudflare_ufw_sync.cli.Path.exists", return_value=True)
+@patch("cloudflare_ufw_sync.cli.Path")
+def test_handle_install_enables_when_no_flag(mock_path_cls, mock_exists, mock_copy, mock_run):
+    """Install without --no-enable should enable and start service (calls mocked)."""
+    mock_joined = MagicMock()
+    mock_joined.exists.return_value = True
+    mock_path_cls.return_value.__truediv__.return_value = mock_joined
+
+    rc = handle_install(Config(), no_enable=False)
+
+    assert rc == 0
+    mock_run.assert_any_call(["systemctl", "daemon-reload"], check=True)
+    mock_run.assert_any_call(["systemctl", "enable", "cloudflare-ufw-sync"], check=True)
+    mock_run.assert_any_call(["systemctl", "start", "cloudflare-ufw-sync"], check=True)
