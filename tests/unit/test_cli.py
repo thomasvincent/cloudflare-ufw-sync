@@ -64,6 +64,13 @@ def test_main_dispatch_uninstall(mock_handle):
     mock_handle.assert_called_once()
 
 
+def test_cli_version_exits_cleanly():
+    # argparse "--version" triggers a SystemExit after printing; capture it
+    import pytest
+    with pytest.raises(SystemExit):
+        main(["--version"])
+
+
 @patch("cloudflare_ufw_sync.cli.SyncService")
 def test_handle_sync_success(mock_sync_service_cls):
     """A successful sync returns exit code 0 and prints a friendly summary."""

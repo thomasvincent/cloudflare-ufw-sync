@@ -56,6 +56,23 @@ def test_setup_logging_invalid_level_falls_back_to_info(caplog):
         cfg.setup_logging()
         assert any("Invalid log level" in line for line in caplog.text.splitlines())
 
+
+def test_merge_config_updates_nested_values():
+    cfg = Config()
+    # sanity: default port is 443
+    assert cfg.get("ufw", "port") == 443
+    # merge a new port and comment
+    cfg._merge_config({"ufw": {"port": 8443, "comment": "CF"}})
+    assert cfg.get("ufw", "port") == 8443
+    assert cfg.get("ufw", "comment") == "CF"
+
+
+def test_get_entire_section_when_key_none():
+    cfg = Config()
+    ufw_section = cfg.get("ufw")
+    assert isinstance(ufw_section, dict)
+    assert "port" in ufw_section
+
     def test_default_config(self):
         """Test that default configuration is loaded correctly."""
         config = Config()

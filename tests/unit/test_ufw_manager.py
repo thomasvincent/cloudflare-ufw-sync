@@ -130,15 +130,46 @@ def test_get_existing_rules_ignores_other_ports(mock_run):
     mock_run.side_effect = [
         MagicMock(),
         MagicMock(stdout="""
-[ 1] 203.0.113.0/24  ALLOW IN  tcp/80  from 203.0.113.0/24  # Cloudflare IP
+[ 1] ***********/24  ALLOW IN  tcp/80  from ***********/24  # Cloudflare IP
 [ 2] 2001:db8::/32   ALLOW IN  tcp/443 from 2001:db8::/32   # Cloudflare IP
 """),
     ]
     ufw = UFWManager(port=443, proto="tcp", comment="Cloudflare IP")
     rules = ufw.get_existing_rules()
     # tcp/80 should be ignored; tcp/443 kept
-    assert "203.0.113.0/24" not in rules["v4"]
+    assert "***********/24" not in rules["v4"]
     assert "2001:db8::/32" in rules["v6"]
+
+
+@patch("cloudflare_ufw_sync.ufw.subprocess.run")
+def test_get_existing_rules_skips_invalid_cidr(mock_run):
+    """Lines with invalid CIDR should be warned about and skipped."""
+    mock_run.side_effect = [
+        MagicMock(),
+        MagicMock(stdout="""
+[ 1] badcidr             ALLOW IN  tcp/443 from badcidr            # Cloudflare IP
+[ 2] 203.0.113.0/24      ALLOW IN  tcp/443 from 203.0.113.0/24     # Cloudflare IP
+"""),
+    ]
+    ufw = UFWManager()
+    rules = ufw.get_existing_rules()
+    assert "203.0.113.0/24" in rules["v4"]
+    # badcidr should not be present
+    assert "badcidr" not in rules["v4"]
+
+
+@patch("cloudflare_ufw_sync.ufw.subprocess.run")
+def test_delete_rule_found_but_delete_fails(mock_run, monkeypatch):
+    """If we find a rule number but delete fails, return False."""
+    # which ufw ok
+    mock_run.return_value = MagicMock()
+    ufw = UFWManager()
+    seq = iter([
+        (True, """\n[ 7] ***********/24  ALLOW IN  tcp/443  from ***********/24  # Cloudflare IP\n"""),  # status numbered
+        (False, "delete failed"),  # delete 7
+    ])
+    monkeypatch.setattr(ufw, "_run_ufw_command", lambda args: next(seq))
+    assert ufw.delete_rule("***********/24") is False
 
 
 @patch("cloudflare_ufw_sync.ufw.subprocess.run")
