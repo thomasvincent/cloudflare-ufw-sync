@@ -82,3 +82,56 @@ def test_set_policy_validation(mock_run):
     ufw = UFWManager()
     assert ufw.set_policy("allow") is True
     assert ufw.set_policy("nope") is False
+
+
+@patch("cloudflare_ufw_sync.ufw.subprocess.run")
+def test_ensure_enabled_active_short_circuits(mock_run):
+    """When UFW is already active, we don't try to enable it again."""
+    # which ufw, then status verbose returns active
+    mock_run.side_effect = [
+        MagicMock(),
+        MagicMock(stdout="Status: active"),
+    ]
+    ufw = UFWManager()
+    assert ufw.ensure_enabled() is True
+
+
+@patch("cloudflare_ufw_sync.ufw.subprocess.run")
+def test_ensure_enabled_enables_when_inactive(mock_run):
+    """If UFW is inactive, we call '--force enable' and return its result."""
+    # which ufw, status verbose inactive, then enable ok
+    mock_run.side_effect = [
+        MagicMock(),
+        MagicMock(stdout="Status: inactive"),
+        MagicMock(stdout="enabled"),
+    ]
+    ufw = UFWManager()
+    assert ufw.ensure_enabled() is True
+
+
+@patch("cloudflare_ufw_sync.ufw.subprocess.run")
+def test_get_existing_rules_ignores_malformed_lines(mock_run):
+    """A weird line shouldn't crash parsing; we just skip it politely."""
+    mock_run.side_effect = [
+        MagicMock(),
+        MagicMock(stdout="""
+[ 1] nonsense without expected tokens
+[ 2] 2001:db8::/32   ALLOW IN  tcp/443  from 2001:db8::/32   # Cloudflare IP
+"""),
+    ]
+    ufw = UFWManager()
+    rules = ufw.get_existing_rules()
+    assert "2001:db8::/32" in rules["v6"]
+
+
+@patch("cloudflare_ufw_sync.ufw.subprocess.run")
+def test_delete_rule_not_found_returns_false(mock_run):
+    """If we can't find a rule number, we fail gracefully and return False."""
+    mock_run.side_effect = [
+        MagicMock(),
+        MagicMock(stdout="""
+[ 1] some other thing # Cloudflare IP
+"""),
+    ]
+    ufw = UFWManager()
+    assert ufw.delete_rule("203.0.113.0/24") is False

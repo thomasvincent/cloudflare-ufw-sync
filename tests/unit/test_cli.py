@@ -13,6 +13,7 @@ from cloudflare_ufw_sync.cli import (
     handle_status,
     handle_sync,
     handle_uninstall,
+    main,
     parse_args,
 )
 from cloudflare_ufw_sync.config import Config
@@ -24,6 +25,11 @@ def test_parse_args_basics():
     assert ns.verbose is True
     assert ns.command == "sync"
     assert ns.force is True
+
+
+def test_main_no_command_returns_1():
+    """Calling main([]) should print usage guidance and return 1."""
+    assert main([]) == 1
 
 
 @patch("cloudflare_ufw_sync.cli.SyncService")
