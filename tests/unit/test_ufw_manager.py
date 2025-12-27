@@ -134,4 +134,63 @@ def test_delete_rule_not_found_returns_false(mock_run):
 """),
     ]
     ufw = UFWManager()
-    assert ufw.delete_rule("203.0.113.0/24") is False
+    assert ufw.delete_rule("***********/24") is False
+
+
+@patch("cloudflare_ufw_sync.ufw.subprocess.run")
+def test_get_existing_rules_status_failure(mock_run, monkeypatch):
+    """If 'ufw status' fails, we return empty sets and don't crash."""
+    # which ufw succeeds, then our _run_ufw_command returns failure
+    mock_run.return_value = MagicMock()
+    m = UFWManager
+    # Patch the instance method to simulate a failure tuple
+    monkeypatch.setattr(m, "_run_ufw_command", lambda self, args: (False, "boom"))
+    ufw = UFWManager()
+    rules = ufw.get_existing_rules()
+    assert rules == {"v4": set(), "v6": set()}
+
+
+@patch("cloudflare_ufw_sync.ufw.subprocess.run")
+def test_add_rule_failure(mock_run, monkeypatch):
+    """If adding a rule fails, we report False (and log)."""
+    # which ufw ok
+    mock_run.return_value = MagicMock()
+    ufw = UFWManager()
+    monkeypatch.setattr(ufw, "_run_ufw_command", lambda args: (False, "nope"))
+    assert ufw.add_rule("***********/24") is False
+
+
+@patch("cloudflare_ufw_sync.ufw.subprocess.run")
+def test_delete_rule_status_failure(mock_run, monkeypatch):
+    """If the numbered status fails, delete_rule returns False right away."""
+    # which ufw ok
+    mock_run.return_value = MagicMock()
+    ufw = UFWManager()
+    # First call is status numbered -> fail
+    calls = iter([(False, "err")])
+    monkeypatch.setattr(ufw, "_run_ufw_command", lambda args: next(calls))
+    assert ufw.delete_rule("***********/24") is False
+
+
+@patch("cloudflare_ufw_sync.ufw.subprocess.run")
+def test_set_policy_command_failure(mock_run, monkeypatch):
+    """Even with a valid policy, a command failure should return False."""
+    # which ufw ok
+    mock_run.return_value = MagicMock()
+    ufw = UFWManager()
+    monkeypatch.setattr(ufw, "_run_ufw_command", lambda args: (False, "err"))
+    assert ufw.set_policy("deny") is False
+
+
+@patch("cloudflare_ufw_sync.ufw.subprocess.run")
+def test_ensure_enabled_enable_failure(mock_run, monkeypatch):
+    """Inactive -> enable fails -> returns False."""
+    # which ufw ok
+    mock_run.return_value = MagicMock()
+    ufw = UFWManager()
+    seq = iter([
+        (True, "Status: inactive"),  # status verbose
+        (False, "enable failed"),    # --force enable
+    ])
+    monkeypatch.setattr(ufw, "_run_ufw_command", lambda args: next(seq))
+    assert ufw.ensure_enabled() is False

@@ -65,3 +65,16 @@ def test_sync_happy_path(mock_cf_client_cls, mock_ufw_cls):
     assert result["status"] == "success"
     assert result["ips"] == {"v4": 1, "v6": 1}
     assert result["rules"] == {"added": 1, "removed": 0}
+
+
+@patch("cloudflare_ufw_sync.sync.time.sleep", side_effect=KeyboardInterrupt)
+@patch("cloudflare_ufw_sync.sync.SyncService.sync")
+@patch("cloudflare_ufw_sync.sync.UFWManager")
+def test_run_daemon_handles_keyboardinterrupt(mock_ufw_mgr, mock_sync, mock_sleep):
+    """run_daemon should handle KeyboardInterrupt and exit cleanly after one iteration.
+
+    We simulate the timer raising KeyboardInterrupt so the loop breaks without error.
+    """
+    svc = SyncService(Config())
+    svc.run_daemon()
+    mock_sync.assert_called()
