@@ -12,6 +12,7 @@ from cloudflare_ufw_sync.cli import (
     handle_install,
     handle_status,
     handle_sync,
+    handle_uninstall,
     parse_args,
 )
 from cloudflare_ufw_sync.config import Config
@@ -61,3 +62,46 @@ def test_handle_install_missing_service_file(mock_exists):
     """If the service file isn't present, we should bail with a clear error."""
     rc = handle_install(Config(), no_enable=True)
     assert rc == 1
+
+
+@patch("subprocess.run")
+@patch("shutil.copy")
+@patch("cloudflare_ufw_sync.cli.Path.exists", return_value=True)
+@patch("cloudflare_ufw_sync.cli.Path")
+def test_handle_install_success(mock_path_cls, mock_exists, mock_copy, mock_run):
+    """Happy path: service file exists, we copy it, reload daemon, and do not enable when --no-enable is set.
+
+    Everything that would touch the real system is mocked: filesystem and systemctl calls.
+    """
+    # Make Path(...)/"scripts"/"cloudflare-ufw-sync.service" behave like it exists
+    mock_service_path = MagicMock()
+    mock_joined = MagicMock()
+    mock_joined.exists.return_value = True
+    # simulate /etc/systemd/system destination path for printing
+    mock_path_cls.return_value.__truediv__.return_value = mock_joined
+
+    rc = handle_install(Config(), no_enable=True)
+
+    assert rc == 0
+    mock_copy.assert_called()  # service file copied
+    # We should at least have reloaded the daemon
+    mock_run.assert_any_call(["systemctl", "daemon-reload"], check=True)
+
+
+@patch("subprocess.run")
+@patch("cloudflare_ufw_sync.cli.Path")
+def test_handle_uninstall_success(mock_path_cls, mock_run):
+    """Uninstall should stop/disable service, remove file if present, and reload daemon.
+
+    We patch Path(...).exists() to True and Path(...).unlink() to succeed.
+    """
+    mock_service_file = MagicMock()
+    mock_service_file.exists.return_value = True
+    mock_path_cls.return_value = mock_service_file
+
+    rc = handle_uninstall(Config())
+
+    assert rc == 0
+    # stop/disable may be non-checking; we just ensure daemon reload is called
+    mock_run.assert_any_call(["systemctl", "daemon-reload"], check=True)
+    assert mock_service_file.unlink.called
