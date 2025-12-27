@@ -12,6 +12,10 @@ Enterprise-grade Cloudflare IP synchronization for UFW.
 
 `cloudflare-ufw-sync` is a robust tool designed to automatically synchronize Cloudflare's IP ranges with your UFW (Uncomplicated Firewall) rules. This ensures that only traffic coming from Cloudflare's network is allowed to access your web server.
 
+## Architecture
+
+![Architecture Diagram](architecture.png)
+
 ## Features
 
 - 🔄 Automatic synchronization of Cloudflare IP ranges with UFW rules
