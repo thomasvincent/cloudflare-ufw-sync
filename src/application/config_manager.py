@@ -4,8 +4,8 @@ This module provides a ConfigManager class that handles loading configuration
 from files, validating it, and providing access to configuration values.
 """
 
-from typing import Dict, Optional, Any, Union
 from pathlib import Path
+from typing import Any, Dict, Optional, Union
 
 
 class ConfigManager:
@@ -22,7 +22,9 @@ class ConfigManager:
             config_path: Optional explicit path to the configuration file.
                 If not provided, default locations will be checked.
         """
-        self.config = {}  # This would be populated with the config
+        # Note: keep this simple stub typed so linters stay happy until
+        # a full implementation lands.
+        self.config: Dict[str, Any] = {}  # This would be populated with the config
 
     def get_value(self, section: str, key: Optional[str] = None) -> Any:
         """Get a configuration value.

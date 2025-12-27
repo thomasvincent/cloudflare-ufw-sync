@@ -91,6 +91,35 @@ sudo systemctl start cloudflare-ufw-sync
 
 ## Development
 
+### Testing with Docker
+
+If you prefer an isolated environment, you can build and run the test suite entirely in Docker.
+
+```bash
+# Build the dev image (includes dev dependencies and package in editable mode)
+docker build -t cloudflare-ufw-sync:dev .
+
+# Run tests with pytest (quiet mode, stop on first failure)
+docker run --rm -t --entrypoint pytest cloudflare-ufw-sync:dev -q --maxfail=1 --disable-warnings
+```
+
+This is the exact setup used in CI and by maintainers when sanity-checking changes locally.
+
+### Make targets
+
+For convenience, a few make targets mirror the Docker workflow:
+
+```bash
+# Build the dev image
+make docker-build
+
+# Run the test suite inside the container
+make docker-test
+
+# Run tox (lint + mypy per tox.ini) inside the container
+make docker-tox
+```
+
 ### Setup
 
 ```bash

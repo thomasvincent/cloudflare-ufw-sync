@@ -8,11 +8,70 @@ from unittest.mock import patch
 
 import pytest
 import yaml
-from cloudflare_ufw_sync.config import Config, DEFAULT_CONFIG
+
+from cloudflare_ufw_sync.config import DEFAULT_CONFIG, Config
 
 
 class TestConfig:
     """Tests for the Config class."""
+
+    def test_get_warns_when_section_not_dict(self, caplog):
+        """If a section isn't a dict, get(section, key) should warn and return None.
+
+        We simulate a user accidentally setting a scalar in place of a section.
+        """
+        cfg = Config()
+        # Break the shape on purpose to exercise the warning branch
+        cfg.config["cloudflare"] = "not-a-dict"
+        with caplog.at_level("WARNING"):
+            assert cfg.get("cloudflare", "api_key") is None
+            # Optional: ensure a warning message was emitted
+            assert any("dictionary was expected" in msg for msg in caplog.text.splitlines())
+
+@patch("logging.FileHandler", side_effect=Exception("nope"))
+def test_setup_logging_file_handler_error(mock_fh):
+    """If FileHandler raises, setup_logging should catch and continue."""
+    cfg = Config()
+    # Ask for a file to trigger FileHandler path
+    cfg.config["logging"] = {"level": "INFO", "file": "/tmp/somewhere.log"}
+    cfg.setup_logging()
+
+
+def test_setup_logging_file_success(tmp_path):
+    """Exercise the happy path of writing logs to a file."""
+    log_file = tmp_path / "app.log"
+    cfg = Config()
+    cfg.config["logging"] = {"level": "INFO", "file": str(log_file)}
+    cfg.setup_logging()
+    import logging
+    logging.getLogger(__name__).info("hello")
+    # File should exist and be non-empty after a log write
+    assert log_file.exists()
+
+
+def test_setup_logging_invalid_level_falls_back_to_info(caplog):
+    cfg = Config()
+    cfg.config["logging"] = {"level": "not-a-level"}
+    with caplog.at_level("WARNING"):
+        cfg.setup_logging()
+        assert any("Invalid log level" in line for line in caplog.text.splitlines())
+
+
+def test_merge_config_updates_nested_values():
+    cfg = Config()
+    # sanity: default port is 443
+    assert cfg.get("ufw", "port") == 443
+    # merge a new port and comment
+    cfg._merge_config({"ufw": {"port": 8443, "comment": "CF"}})
+    assert cfg.get("ufw", "port") == 8443
+    assert cfg.get("ufw", "comment") == "CF"
+
+
+def test_get_entire_section_when_key_none():
+    cfg = Config()
+    ufw_section = cfg.get("ufw")
+    assert isinstance(ufw_section, dict)
+    assert "port" in ufw_section
 
     def test_default_config(self):
         """Test that default configuration is loaded correctly."""

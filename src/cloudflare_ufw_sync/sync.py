@@ -18,10 +18,11 @@ logger = logging.getLogger(__name__)
 
 
 def get_str_value(value: Any, default: str = "") -> str:
-    """Convert any value to a string with a default value.
+    """Convert any value to a friendly string.
 
-    Because apparently Python's type system is more of a suggestion than a rule,
-    and we need to be extra careful about what types we're actually working with.
+    A tiny bit of hand-holding for config values that might arrive as numbers,
+    strings, or environment-expanded values. If it's missing, we hand back a
+    sensible default instead of making the caller guess.
 
     Args:
         value: The value to convert to a string.
@@ -37,11 +38,10 @@ def get_str_value(value: Any, default: str = "") -> str:
 
 
 def get_int_value(value: Any, default: int = 0) -> int:
-    """Convert a value to an integer with a default value.
+    """Convert value to int without being grumpy about types.
 
-    Turns out YAML parsers can be... creative... with their type interpretations.
-    This function is our safety net for when "443" comes back as a string instead
-    of an int (yes, this has happened, and yes, I'm still annoyed about it).
+    This lets config stay human-friendly ("443" is fine) while keeping runtime
+    types strict. If we can't make sense of it, we calmly return the default.
 
     Args:
         value: The value to convert to an integer.
@@ -90,18 +90,17 @@ class SyncService:
 
         self.cloudflare = CloudflareClient(api_key=api_key)
 
-        # Get port with proper type conversion - defaulting to 443 because we're fancy HTTPS folks
+        # Get port with proper type conversion
         port = get_int_value(self.config.get("ufw", "port"), default=443)
 
-        # Get protocol - TCP is king, but UDP exists too (I guess)
+        # Get protocol with proper type conversion
         proto = get_str_value(self.config.get("ufw", "proto"), default="tcp")
 
-        # Get comment for our rules so future us knows what the heck these rules are for
+        # Get comment with proper type conversion
         comment = get_str_value(
             self.config.get("ufw", "comment"), default="Cloudflare IP"
         )
 
-        # Fire up the UFW manager with all our carefully type-converted settings
         self.ufw = UFWManager(
             port=port,
             proto=proto,
@@ -133,24 +132,23 @@ class SyncService:
             ip_types_value if isinstance(ip_types_value, list) else ["v4", "v6"]
         )
 
-        # Make sure all elements are strings (looking at you, config parsers)
+        # Make sure all elements are strings
         ip_types_str = [get_str_value(ip_type) for ip_type in ip_types]
 
-        # Time to phone home to Cloudflare and ask "hey, what IPs are you using these days?"
+        # Fetch Cloudflare IP ranges
         cloudflare_ips: Dict[str, Set[str]] = self.cloudflare.get_ip_ranges(
             ip_types_str
         )
 
-        # Set default policy if configured - usually "deny" because we don't trust anyone
+        # Set default policy if configured, with proper type conversion
         default_policy = get_str_value(self.config.get("ufw", "default_policy"))
         if default_policy:
             self.ufw.set_policy(default_policy)
 
-        # Make sure UFW is actually running (would be embarrassing if it wasn't)
+        # Ensure UFW is enabled
         self.ufw.ensure_enabled()
 
-        # Now for the main event: sync those rules!
-        # This is where we add new Cloudflare IPs and remove old ones
+        # Sync rules
         added, removed = self.ufw.sync_rules(cloudflare_ips)
 
         # Prepare result
@@ -174,16 +172,11 @@ class SyncService:
     def run_daemon(self) -> None:
         """Run as a daemon, periodically synchronizing Cloudflare IPs with UFW rules.
 
-        Welcome to daemon mode! We're going to run forever (or until you kill us with Ctrl+C).
-        This is basically like a really boring game of "check if Cloudflare changed their IPs"
-        that repeats every day. Thrilling stuff, I know.
-
         This method runs in an infinite loop, periodically calling the sync() method
         based on the configured interval. It handles exceptions and continues running
         until interrupted by the user.
         """
-        # Get interval with proper type conversion (default 1 day = 86400 seconds)
-        # Fun fact: I always have to Google how many seconds are in a day
+        # Get interval with proper type conversion (default 1 day in seconds)
         interval = get_int_value(self.config.get("sync", "interval"), default=86400)
 
         logger.info(f"Starting daemon with {interval} seconds interval")
@@ -193,8 +186,7 @@ class SyncService:
                 # Perform synchronization - this is where the magic happens
                 self.sync()
 
-                # Time for a nap! We'll check again after our interval
-                # (during which you can totally go get coffee, watch a movie, or sleep)
+                # Wait for the next synchronization interval
                 logger.info(f"Sleeping for {interval} seconds")
                 time.sleep(interval)
             except KeyboardInterrupt:
@@ -204,6 +196,5 @@ class SyncService:
             except Exception as e:
                 # Something went wrong, but we're resilient! We'll try again soon
                 logger.error(f"Error in sync daemon: {str(e)}")
-                # Sleep for a shorter period before retrying (1 minute instead of a day)
-                # Because when things are broken, you want to know sooner rather than later
+                # Sleep for a shorter period before retrying after an error
                 time.sleep(60)

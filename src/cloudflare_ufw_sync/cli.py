@@ -105,10 +105,10 @@ def handle_daemon(config: Config, foreground: bool = False) -> int:
         int: Exit code - 0 for success, 1 for failure.
     """
     if not foreground and os.fork() > 0:
-        # Parent process
+        # Parent process: we return immediately so your shell prompt isn't held hostage.
         return 0
 
-    # Child process
+    # Child process: this is the long-running worker that keeps things in sync.
     try:
         sync_service = SyncService(config)
         sync_service.run_daemon()

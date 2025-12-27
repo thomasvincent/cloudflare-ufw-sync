@@ -73,8 +73,7 @@ class CloudflareClient:
             response.raise_for_status()
             data = response.json()
 
-            # Cloudflare returns a "success" field because they're optimistic like that
-            # But sometimes success = false, which is... less optimistic
+            # Check if the API returned a success response
             if not data.get("success", False):
                 error_msg = (
                     f"Cloudflare API error: {data.get('errors', ['Unknown error'])}"
@@ -82,18 +81,16 @@ class CloudflareClient:
                 logger.error(error_msg)
                 raise RuntimeError(error_msg)
 
-            # Extract the actual IP ranges from the response
-            # (nested in "result" because JSON loves its nesting)
+            # Extract IP ranges from the response
             result = data.get("result", {})
             ip_ranges = {}
 
-            # Grab IPv4 ranges if we asked for them
-            # "ipv4_cidrs" is what Cloudflare calls them - not my naming convention!
+            # Extract IPv4 ranges if requested
             if "v4" in ip_types and "ipv4_cidrs" in result:
                 ip_ranges["v4"] = set(result["ipv4_cidrs"])
                 logger.info(f"Found {len(ip_ranges['v4'])} IPv4 ranges")
 
-            # And IPv6 ranges too - welcome to the modern internet!
+            # Extract IPv6 ranges if requested
             if "v6" in ip_types and "ipv6_cidrs" in result:
                 ip_ranges["v6"] = set(result["ipv6_cidrs"])
                 logger.info(f"Found {len(ip_ranges['v6'])} IPv6 ranges")

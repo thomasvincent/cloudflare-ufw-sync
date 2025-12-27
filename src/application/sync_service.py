@@ -5,7 +5,7 @@ with UFW firewall rules. It coordinates between the CloudflareClient and UFWMana
 to ensure that only traffic from Cloudflare is allowed through to protected services.
 """
 
-from typing import Dict, Optional, Set, Any, Tuple
+from typing import Any, Dict, Optional, Set, Tuple
 
 
 class SyncService:

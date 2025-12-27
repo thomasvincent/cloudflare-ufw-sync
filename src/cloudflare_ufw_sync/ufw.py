@@ -36,7 +36,7 @@ class UFWManager:
             port: The port number to allow traffic to (default: 443 for HTTPS).
             proto: The protocol to allow (tcp, udp). Default is 'tcp'.
             comment: Comment to add to UFW rules for identification. Default is
-                'Cloudflare IP' (so future us knows what these cryptic rules are for).
+                'Cloudflare IP'.
 
         Raises:
             RuntimeError: If UFW is not installed on the system (in which case, what are we even doing here?).
@@ -51,9 +51,8 @@ class UFWManager:
     def _check_ufw_installed(self) -> None:
         """Check if UFW is installed on the system.
 
-        Uses the classic 'which' command to see if UFW is hiding anywhere in $PATH.
-        If it's not there, we bail out immediately because there's no point in
-        trying to configure a firewall that doesn't exist (learned that the hard way).
+        This method checks if the 'ufw' command is available by running the
+        'which' command.
 
         Raises:
             RuntimeError: If UFW is not installed on the system.
@@ -123,14 +122,17 @@ class UFWManager:
 
         ip_ranges: Dict[str, Set[str]] = {"v4": set(), "v6": set()}
 
-        # Time to parse UFW's output - this is where regex earns its keep
+        # Parse UFW output to extract rules
         for line in output.splitlines():
             # Only look at lines with our comment (ignore other people's rules)
             if self.comment not in line:
                 continue
 
-            # Extract IP and protocol info using regex magic
-            # Format: [1] ALLOW IN tcp/443 from 192.168.1.0/24 # Cloudflare IP
+            # Extract IP from rule using regex
+            # Little regex decoder ring:
+            # - We look for lines like: "ALLOW IN tcp/443 from 203.0.113.0/24"
+            # - Group 1 captures the proto/port bit (e.g. tcp/443)
+            # - Group 2 captures the source IP/CIDR
             ip_match = re.search(r"ALLOW\s+IN\s+(\S+)\s+from\s+(\S+)", line)
             if not ip_match:
                 continue
@@ -176,11 +178,11 @@ class UFWManager:
             "from",
             ip_range,
             "to",
-            "any",  # "any" because we're allowing them to reach our port
+            "any",
             "port",
             str(self.port),
             "comment",
-            self.comment,  # Future us will thank us for this comment
+            self.comment,
         ]
 
         success, output = self._run_ufw_command(args)
@@ -212,13 +214,12 @@ class UFWManager:
             logger.error("Failed to get UFW rules")
             return False
 
-        # Hunt for the rule number - it's in there somewhere!
         rule_number = None
         for line in output.splitlines():
             # Look for lines with both our IP range and our comment
             # (to avoid deleting someone else's rules - that would be awkward)
             if ip_range in line and self.comment in line:
-                # Extract the rule number from format like "[12]"
+                # Extract the rule number using regex
                 match = re.match(r"\[\s*(\d+)\]", line)
                 if match:
                     rule_number = match.group(1)
@@ -229,8 +230,7 @@ class UFWManager:
             logger.warning(f"Rule for {ip_range} not found")
             return False
 
-        # Now delete the rule using its number
-        # (UFW won't let us delete by content, which would be way more convenient)
+        # Delete the rule by number
         success, output = self._run_ufw_command(["delete", rule_number])
         if success:
             logger.info(f"Deleted rule for {ip_range}")
@@ -301,8 +301,6 @@ class UFWManager:
             logger.error(f"Invalid policy: {policy}")
             return False
 
-        # Set the default incoming policy
-        # Pro tip: "deny" is your friend (unless you like unexpected visitors)
         success, output = self._run_ufw_command(["default", policy, "incoming"])
         if success:
             logger.info(f"Default incoming policy set to {policy}")
@@ -328,9 +326,7 @@ class UFWManager:
             logger.info("UFW is already enabled")
             return True
 
-        # UFW isn't enabled - time to turn it on!
-        # We use --force to skip the "are you sure?" prompt (yes, we're sure)
-        # because automation doesn't like interactive questions
+        # Enable UFW with --force to avoid interactive prompts
         success, output = self._run_ufw_command(["--force", "enable"])
         if success:
             logger.info("UFW enabled")

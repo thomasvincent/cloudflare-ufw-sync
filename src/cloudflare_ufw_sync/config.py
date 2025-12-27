@@ -155,6 +155,15 @@ class Config:
 
         section_value = self.config[section]
 
+        if key is None:
+            # Return entire section if key is not specified
+            if (
+                isinstance(section_value, (dict, list, str, int, bool))
+                or section_value is None
+            ):
+                return section_value
+            return None  # Return None for unsupported types
+
         # If no key specified, return the whole section
         if key is None:
             # Make sure it's a type we can safely return
@@ -170,8 +179,6 @@ class Config:
         if isinstance(section_value, dict):
             return section_value.get(key)
 
-        # Oops - they asked for a key from something that isn't a dict
-        # That's like asking for the third page of a song - doesn't make sense
         logger.warning(
             f"Configuration error: Section '{section}' is of type "
             f"'{type(section_value).__name__}' but a dictionary was expected "
@@ -190,7 +197,7 @@ class Config:
         # Make sure it's actually a dict (type safety is our friend)
         log_config = log_config_value if isinstance(log_config_value, dict) else {}
 
-        # Figure out what log level we want - default to INFO (not too chatty, not too quiet)
+        # Get log level with proper type conversion
         level_value = log_config.get("level", "INFO")
         level_str = str(level_value).upper() if level_value is not None else "INFO"
         try:
@@ -201,7 +208,7 @@ class Config:
             logger.warning(f"Invalid log level '{level_str}', using INFO")
             log_level = logging.INFO
 
-        # Check if they want logs written to a file (in addition to console)
+        # Get log file with proper type conversion
         log_file_value = log_config.get("file")
         log_file = str(log_file_value) if log_file_value is not None else None
 
