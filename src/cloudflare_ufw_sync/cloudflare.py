@@ -26,12 +26,17 @@ class CloudflareClient:
     def __init__(self, api_key: Optional[str] = None):
         """Initialize Cloudflare client.
 
+        Sets up our connection to Cloudflare. API key is optional because Cloudflare
+        is nice enough to let us fetch IP ranges without authentication (thanks, folks!).
+
         Args:
             api_key: Optional Cloudflare API key for authentication. If provided,
                 it will be used to authenticate requests to the Cloudflare API.
         """
         self.api_key = api_key
         self.session = requests.Session()
+        # Only add auth header if we actually have an API key
+        # (no point in authenticating with thin air)
         if api_key:
             self.session.headers.update({"Authorization": f"Bearer {api_key}"})
 
@@ -54,13 +59,16 @@ class CloudflareClient:
             requests.RequestException: If there was an error making the HTTP request.
             RuntimeError: If the API returns an error or the response cannot be parsed.
         """
+        # Default to both IPv4 and IPv6 because we're living in the future
+        # (well, except for all the places that still don't support IPv6...)
         if ip_types is None:
             ip_types = ["v4", "v6"]
 
         logger.info(f"Fetching Cloudflare IP ranges for types: {ip_types}")
 
         try:
-            # Make the API request
+            # Time to call Cloudflare and see what IPs they're using
+            # This is basically the phone book of the internet
             response = self.session.get(CLOUDFLARE_IPS_URL)
             response.raise_for_status()
             data = response.json()
@@ -90,8 +98,10 @@ class CloudflareClient:
             return ip_ranges
 
         except requests.RequestException as e:
+            # Network error - maybe Cloudflare is down? (Ironic, right?)
             logger.error(f"Error fetching Cloudflare IP ranges: {str(e)}")
             raise
         except (KeyError, ValueError) as e:
+            # JSON parsing error - did Cloudflare change their API format again?
             logger.error(f"Error parsing Cloudflare API response: {str(e)}")
             raise RuntimeError(f"Error parsing Cloudflare API response: {str(e)}")

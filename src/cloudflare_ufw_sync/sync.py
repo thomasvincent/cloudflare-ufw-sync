@@ -31,6 +31,7 @@ def get_str_value(value: Any, default: str = "") -> str:
     Returns:
         A string representation of the value, or the default if value is None.
     """
+    # None is a valid response to "what's your value?" - we don't judge
     if value is None:
         return default
     return str(value)
@@ -49,10 +50,13 @@ def get_int_value(value: Any, default: int = 0) -> int:
     Returns:
         An integer representation of the value, or the default if conversion fails.
     """
+    # If it's already an int, great! Gold star for you, YAML parser!
     if isinstance(value, int):
         return value
+    # If it's a string that looks like a number, we'll be generous and convert it
     if isinstance(value, str) and value.isdigit():
         return int(value)
+    # Otherwise, fall back to the default and pretend this never happened
     return default
 
 
@@ -67,15 +71,21 @@ class SyncService:
     def __init__(self, config: Optional[Config] = None):
         """Initialize sync service with configuration.
 
+        Sets up our sync service with all the bells and whistles. Think of this as
+        the "getting ready for battle" phase - we're loading our config, grabbing our
+        Cloudflare credentials, and preparing UFW for the IP address onslaught.
+
         Args:
             config: Configuration object containing Cloudflare and UFW settings.
-                If None, a default Config object will be created.
+                If None, a default Config object will be created (we're helpful like that).
         """
         self.config = config or Config()
 
         # Convert api_key to string type for CloudflareClient
+        # (because some config parsers think API keys should be integers... sigh)
         api_key_str = get_str_value(self.config.get("cloudflare", "api_key"))
         # Special case - we want None for api_key if it's empty
+        # Empty strings and None are NOT the same thing, despite what JavaScript thinks
         api_key: Optional[str] = None if not api_key_str else api_key_str
 
         self.cloudflare = CloudflareClient(api_key=api_key)
@@ -116,6 +126,7 @@ class SyncService:
         logger.info("Starting Cloudflare to UFW synchronization")
 
         # Get Cloudflare IP ranges with proper type conversion
+        # Because config files are basically a trust fall exercise with YAML
         ip_types_value = self.config.get("cloudflare", "ip_types")
         ip_types: List[str] = (
             ip_types_value if isinstance(ip_types_value, list) else ["v4", "v6"]
@@ -172,16 +183,18 @@ class SyncService:
 
         while True:
             try:
-                # Perform synchronization
+                # Perform synchronization - this is where the magic happens
                 self.sync()
 
                 # Wait for the next synchronization interval
                 logger.info(f"Sleeping for {interval} seconds")
                 time.sleep(interval)
             except KeyboardInterrupt:
+                # User pressed Ctrl+C - they want out! Can't say I blame them
                 logger.info("Daemon stopped by user")
                 break
             except Exception as e:
+                # Something went wrong, but we're resilient! We'll try again soon
                 logger.error(f"Error in sync daemon: {str(e)}")
                 # Sleep for a shorter period before retrying after an error
                 time.sleep(60)
