@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
+
 from cloudflare_ufw_sync.cloudflare import CloudflareClient
 
 

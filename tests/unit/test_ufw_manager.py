@@ -22,11 +22,13 @@ def test_get_existing_rules_parses_ipv4_and_ipv6(mock_run):
     mock_run.side_effect = [
         MagicMock(),  # which ufw
         # 'ufw status numbered' output
-        MagicMock(stdout="""
+        MagicMock(
+            stdout="""
 [ 1] 203.0.113.0/24  ALLOW IN  tcp/443  from 203.0.113.0/24  # Cloudflare IP
 [ 2] 2001:db8::/32   ALLOW IN  tcp/443  from 2001:db8::/32   # Cloudflare IP
 [ 3] 10.0.0.0/8      ALLOW IN  tcp/22   from 10.0.0.0/8      # not ours
-"""),
+"""
+        ),
     ]
 
     ufw = UFWManager(port=443, proto="tcp", comment="Cloudflare IP")
@@ -58,9 +60,11 @@ def test_add_and_delete_rule_happy_path(mock_run):
     # Now test deletion path (status -> delete)
     mock_run.side_effect = [
         MagicMock(),  # which ufw for new instance
-        MagicMock(stdout="""
+        MagicMock(
+            stdout="""
 [ 7] 203.0.113.0/24  ALLOW IN  tcp/443  from 203.0.113.0/24  # Cloudflare IP
-"""),
+"""
+        ),
         MagicMock(stdout="Rule deleted"),  # delete 7
     ]
     ufw = UFWManager()

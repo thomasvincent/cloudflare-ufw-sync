@@ -11,13 +11,15 @@ from typing import Dict, List, Optional, Set, Tuple
 
 class UFWManager:
     """Manages UFW firewall rules for Cloudflare IP ranges.
-    
+
     This class provides methods to add, delete, and synchronize UFW rules for
     Cloudflare IP ranges. It also provides methods to check if UFW is installed
     and enabled, and to set the default policy.
     """
 
-    def __init__(self, port: int = 443, proto: str = "tcp", comment: str = "Cloudflare IP"):
+    def __init__(
+        self, port: int = 443, proto: str = "tcp", comment: str = "Cloudflare IP"
+    ):
         """Initialize UFW manager with port, protocol, and comment.
 
         Args:
@@ -25,14 +27,14 @@ class UFWManager:
             proto: The protocol to allow (tcp, udp). Default is 'tcp'.
             comment: Comment to add to UFW rules for identification. Default is
                 'Cloudflare IP'.
-                
+
         Raises:
             RuntimeError: If UFW is not installed on the system.
         """
         self.port = port
         self.proto = proto
         self.comment = comment
-        
+
     def sync_rules(self, ip_ranges: Dict[str, Set[str]]) -> Tuple[int, int]:
         """Synchronize UFW rules with the provided Cloudflare IP ranges.
 

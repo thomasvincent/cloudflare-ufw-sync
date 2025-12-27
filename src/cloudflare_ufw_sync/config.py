@@ -45,7 +45,7 @@ DEFAULT_CONFIG = {
 
 class Config:
     """Configuration handler for cloudflare-ufw-sync.
-    
+
     Handles loading and management of configuration values from YAML files.
     Provides access to configuration values and logging setup.
     """
@@ -118,7 +118,9 @@ class Config:
             else:
                 self.config[section] = values
 
-    def get(self, section: str, key: Optional[str] = None) -> Union[Dict, List, str, int, bool, None]:
+    def get(
+        self, section: str, key: Optional[str] = None
+    ) -> Union[Dict, List, str, int, bool, None]:
         """Get configuration value from the loaded config.
 
         Args:
@@ -133,17 +135,20 @@ class Config:
             return None
 
         section_value = self.config[section]
-        
+
         if key is None:
             # Return entire section if key is not specified
-            if isinstance(section_value, (dict, list, str, int, bool)) or section_value is None:
+            if (
+                isinstance(section_value, (dict, list, str, int, bool))
+                or section_value is None
+            ):
                 return section_value
             return None  # Return None for unsupported types
 
         # Only try to get a key if section_value is a dict
         if isinstance(section_value, dict):
             return section_value.get(key)
-        
+
         logger.warning(
             f"Configuration error: Section '{section}' is of type "
             f"'{type(section_value).__name__}' but a dictionary was expected "
@@ -153,14 +158,14 @@ class Config:
 
     def setup_logging(self) -> None:
         """Configure logging based on configuration.
-        
+
         Sets up console and optional file logging based on the 'logging' section
         of the configuration. Configures log level, format, and handlers.
         """
         log_config_value = self.config.get("logging", {})
         # Ensure log_config is a dict
         log_config = log_config_value if isinstance(log_config_value, dict) else {}
-        
+
         # Get log level with proper type conversion
         level_value = log_config.get("level", "INFO")
         level_str = str(level_value).upper() if level_value is not None else "INFO"
@@ -169,7 +174,7 @@ class Config:
         except AttributeError:
             logger.warning(f"Invalid log level '{level_str}', using INFO")
             log_level = logging.INFO
-        
+
         # Get log file with proper type conversion
         log_file_value = log_config.get("file")
         log_file = str(log_file_value) if log_file_value is not None else None

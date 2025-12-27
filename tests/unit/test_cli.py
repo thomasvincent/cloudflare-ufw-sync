@@ -8,7 +8,12 @@ would poke the real system is mocked.
 
 from unittest.mock import MagicMock, patch
 
-from cloudflare_ufw_sync.cli import parse_args, handle_sync, handle_status, handle_install
+from cloudflare_ufw_sync.cli import (
+    handle_install,
+    handle_status,
+    handle_sync,
+    parse_args,
+)
 from cloudflare_ufw_sync.config import Config
 
 

@@ -8,7 +8,8 @@ from unittest.mock import patch
 
 import pytest
 import yaml
-from cloudflare_ufw_sync.config import Config, DEFAULT_CONFIG
+
+from cloudflare_ufw_sync.config import DEFAULT_CONFIG, Config
 
 
 class TestConfig:

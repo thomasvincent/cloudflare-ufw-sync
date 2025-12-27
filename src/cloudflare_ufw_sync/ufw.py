@@ -17,13 +17,15 @@ logger = logging.getLogger(__name__)
 
 class UFWManager:
     """Manages UFW firewall rules for Cloudflare IP ranges.
-    
+
     This class provides methods to add, delete, and synchronize UFW rules for
     Cloudflare IP ranges. It also provides methods to check if UFW is installed
     and enabled, and to set the default policy.
     """
 
-    def __init__(self, port: int = 443, proto: str = "tcp", comment: str = "Cloudflare IP"):
+    def __init__(
+        self, port: int = 443, proto: str = "tcp", comment: str = "Cloudflare IP"
+    ):
         """Initialize UFW manager with port, protocol, and comment.
 
         Args:
@@ -31,7 +33,7 @@ class UFWManager:
             proto: The protocol to allow (tcp, udp). Default is 'tcp'.
             comment: Comment to add to UFW rules for identification. Default is
                 'Cloudflare IP'.
-                
+
         Raises:
             RuntimeError: If UFW is not installed on the system.
         """
@@ -39,22 +41,22 @@ class UFWManager:
         self.proto = proto
         self.comment = comment
         self._check_ufw_installed()
-        
+
     def _check_ufw_installed(self) -> None:
         """Check if UFW is installed on the system.
-        
+
         This method checks if the 'ufw' command is available by running the
         'which' command.
-        
+
         Raises:
             RuntimeError: If UFW is not installed on the system.
         """
         try:
             subprocess.run(
-                ["which", "ufw"], 
-                check=True, 
-                stdout=subprocess.PIPE, 
-                stderr=subprocess.PIPE
+                ["which", "ufw"],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
             )
         except subprocess.CalledProcessError:
             logger.error("UFW is not installed")
@@ -76,7 +78,7 @@ class UFWManager:
         """
         cmd = ["ufw"] + args
         logger.debug(f"Running command: {' '.join(cmd)}")
-        
+
         try:
             result = subprocess.run(
                 cmd,
@@ -105,15 +107,15 @@ class UFWManager:
         if not success:
             logger.error("Failed to get UFW rules")
             return {"v4": set(), "v6": set()}
-            
+
         ip_ranges: Dict[str, Set[str]] = {"v4": set(), "v6": set()}
-        
+
         # Parse UFW output to extract rules
         for line in output.splitlines():
             # Skip lines that don't contain our comment
             if self.comment not in line:
                 continue
-                
+
             # Extract IP from rule using regex
             # Little regex decoder ring:
             # - We look for lines like: "ALLOW IN tcp/443 from 203.0.113.0/24"
@@ -122,12 +124,12 @@ class UFWManager:
             ip_match = re.search(r"ALLOW\s+IN\s+(\S+)\s+from\s+(\S+)", line)
             if not ip_match:
                 continue
-                
+
             proto_port, ip_range = ip_match.groups()
             # Skip rules with different port/protocol
             if f"{self.proto}/{self.port}" not in proto_port:
                 continue
-                
+
             try:
                 # Validate IP and determine version
                 ip_obj = ipaddress.ip_network(ip_range)
@@ -135,12 +137,12 @@ class UFWManager:
                 ip_ranges[ip_type].add(ip_range)
             except ValueError:
                 logger.warning(f"Invalid IP range in UFW rule: {ip_range}")
-                
+
         logger.info(
             f"Found {len(ip_ranges['v4'])} IPv4 and {len(ip_ranges['v6'])} IPv6 rules"
         )
         return ip_ranges
-        
+
     def add_rule(self, ip_range: str) -> bool:
         """Add a UFW rule for the specified IP range.
 
@@ -154,22 +156,27 @@ class UFWManager:
             Boolean indicating whether the rule was successfully added.
         """
         args = [
-            "allow", 
-            "proto", self.proto, 
-            "from", ip_range, 
-            "to", "any", 
-            "port", str(self.port), 
-            "comment", self.comment
+            "allow",
+            "proto",
+            self.proto,
+            "from",
+            ip_range,
+            "to",
+            "any",
+            "port",
+            str(self.port),
+            "comment",
+            self.comment,
         ]
-        
+
         success, output = self._run_ufw_command(args)
         if success:
             logger.info(f"Added rule for {ip_range}")
         else:
             logger.error(f"Failed to add rule for {ip_range}: {output}")
-        
+
         return success
-        
+
     def delete_rule(self, ip_range: str) -> bool:
         """Delete a UFW rule for the specified IP range.
 
@@ -188,30 +195,30 @@ class UFWManager:
         if not success:
             logger.error("Failed to get UFW rules")
             return False
-            
+
         rule_number = None
         for line in output.splitlines():
             # Find the line containing both the IP range and our comment
             if ip_range in line and self.comment in line:
                 # Extract the rule number using regex
-                match = re.match(r'\[\s*(\d+)\]', line)
+                match = re.match(r"\[\s*(\d+)\]", line)
                 if match:
                     rule_number = match.group(1)
                     break
-        
+
         if not rule_number:
             logger.warning(f"Rule for {ip_range} not found")
             return False
-            
+
         # Delete the rule by number
         success, output = self._run_ufw_command(["delete", rule_number])
         if success:
             logger.info(f"Deleted rule for {ip_range}")
         else:
             logger.error(f"Failed to delete rule for {ip_range}: {output}")
-            
+
         return success
-        
+
     def sync_rules(self, ip_ranges: Dict[str, Set[str]]) -> Tuple[int, int]:
         """Synchronize UFW rules with the provided Cloudflare IP ranges.
 
@@ -231,14 +238,14 @@ class UFWManager:
         existing_rules = self.get_existing_rules()
         added = 0
         removed = 0
-        
+
         # Add new rules that don't exist yet
         for ip_type, ranges in ip_ranges.items():
             for ip_range in ranges:
                 if ip_range not in existing_rules[ip_type]:
                     if self.add_rule(ip_range):
                         added += 1
-        
+
         # Remove old rules that are no longer needed
         for ip_type, ranges in existing_rules.items():
             for ip_range in ranges:
@@ -246,10 +253,10 @@ class UFWManager:
                 if ip_range not in ip_ranges.get(ip_type, set()):
                     if self.delete_rule(ip_range):
                         removed += 1
-                        
+
         logger.info(f"Sync completed: {added} rules added, {removed} rules removed")
         return added, removed
-        
+
     def set_policy(self, policy: str) -> bool:
         """Set the default UFW policy for incoming connections.
 
@@ -266,15 +273,15 @@ class UFWManager:
         if policy not in ("allow", "deny", "reject"):
             logger.error(f"Invalid policy: {policy}")
             return False
-            
+
         success, output = self._run_ufw_command(["default", policy, "incoming"])
         if success:
             logger.info(f"Default incoming policy set to {policy}")
         else:
             logger.error(f"Failed to set default policy to {policy}: {output}")
-            
+
         return success
-        
+
     def ensure_enabled(self) -> bool:
         """Ensure UFW is enabled, enabling it if necessary.
 
@@ -289,12 +296,12 @@ class UFWManager:
         if "Status: active" in output:
             logger.info("UFW is already enabled")
             return True
-            
+
         # Enable UFW with --force to avoid interactive prompts
         success, output = self._run_ufw_command(["--force", "enable"])
         if success:
             logger.info("UFW enabled")
         else:
             logger.error(f"Failed to enable UFW: {output}")
-            
+
         return success

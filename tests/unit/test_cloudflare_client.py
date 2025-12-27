@@ -5,5 +5,6 @@ file around (with a passing test) so that any scripts or docs referencing it
 don't break while we gradually expand coverage elsewhere.
 """
 
+
 def test_smoke():
     assert True

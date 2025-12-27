@@ -10,8 +10,8 @@ building.
 from typing import Any, Dict, Set
 from unittest.mock import MagicMock, patch
 
-from cloudflare_ufw_sync.sync import SyncService, get_int_value, get_str_value
 from cloudflare_ufw_sync.config import Config
+from cloudflare_ufw_sync.sync import SyncService, get_int_value, get_str_value
 
 
 def test_type_helpers_are_defensive():

@@ -31,73 +31,38 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         description="Cloudflare IP synchronization for UFW"
     )
     parser.add_argument(
-        "--version",
-        action="version",
-        version=f"%(prog)s {__version__}"
+        "--version", action="version", version=f"%(prog)s {__version__}"
     )
-    parser.add_argument(
-        "--config",
-        "-c",
-        type=str,
-        help="Path to configuration file"
-    )
-    parser.add_argument(
-        "--verbose",
-        "-v",
-        action="store_true",
-        help="Verbose output"
-    )
+    parser.add_argument("--config", "-c", type=str, help="Path to configuration file")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
 
-    subparsers = parser.add_subparsers(
-        dest="command",
-        help="Command to run"
-    )
+    subparsers = parser.add_subparsers(dest="command", help="Command to run")
 
     # Sync command
     sync_parser = subparsers.add_parser(
-        "sync",
-        help="Synchronize Cloudflare IPs with UFW"
+        "sync", help="Synchronize Cloudflare IPs with UFW"
     )
     sync_parser.add_argument(
-        "--force",
-        "-f",
-        action="store_true",
-        help="Force synchronization"
+        "--force", "-f", action="store_true", help="Force synchronization"
     )
 
     # Daemon command
-    daemon_parser = subparsers.add_parser(
-        "daemon",
-        help="Run as a daemon"
-    )
+    daemon_parser = subparsers.add_parser("daemon", help="Run as a daemon")
     daemon_parser.add_argument(
-        "--foreground",
-        action="store_true",
-        help="Run in foreground"
+        "--foreground", action="store_true", help="Run in foreground"
     )
 
     # Status command
-    subparsers.add_parser(
-        "status",
-        help="Show status"
-    )
+    subparsers.add_parser("status", help="Show status")
 
     # Install command
-    install_parser = subparsers.add_parser(
-        "install",
-        help="Install as a service"
-    )
+    install_parser = subparsers.add_parser("install", help="Install as a service")
     install_parser.add_argument(
-        "--no-enable",
-        action="store_true",
-        help="Don't enable service"
+        "--no-enable", action="store_true", help="Don't enable service"
     )
 
     # Uninstall command
-    subparsers.add_parser(
-        "uninstall",
-        help="Uninstall service"
-    )
+    subparsers.add_parser("uninstall", help="Uninstall service")
 
     return parser.parse_args(args)
 
@@ -167,7 +132,7 @@ def handle_status(config: Config) -> int:
     try:
         # Import locally to avoid circular imports
         from cloudflare_ufw_sync.ufw import UFWManager
-        
+
         ufw = UFWManager()
         existing_rules = ufw.get_existing_rules()
         print("Cloudflare UFW Sync Status:")
@@ -194,37 +159,31 @@ def handle_install(config: Config, no_enable: bool = False) -> int:
     """
     # Get the script directory
     script_dir = Path(__file__).resolve().parent.parent.parent / "scripts"
-    
+
     if not (script_dir / "cloudflare-ufw-sync.service").exists():
         logger.error("Service file not found")
         return 1
-        
+
     try:
         import shutil
         import subprocess
-        
+
         # Copy service file
         dest = Path("/etc/systemd/system/cloudflare-ufw-sync.service")
         shutil.copy(script_dir / "cloudflare-ufw-sync.service", dest)
         print(f"Service file installed at {dest}")
-        
+
         # Reload systemd
         subprocess.run(["systemctl", "daemon-reload"], check=True)
         print("Systemd daemon reloaded")
-        
+
         if not no_enable:
             # Enable and start service
-            subprocess.run(
-                ["systemctl", "enable", "cloudflare-ufw-sync"],
-                check=True
-            )
+            subprocess.run(["systemctl", "enable", "cloudflare-ufw-sync"], check=True)
             print("Service enabled")
-            subprocess.run(
-                ["systemctl", "start", "cloudflare-ufw-sync"],
-                check=True
-            )
+            subprocess.run(["systemctl", "start", "cloudflare-ufw-sync"], check=True)
             print("Service started")
-            
+
         return 0
     except Exception as e:
         logger.error(f"Installation failed: {str(e)}")
@@ -245,29 +204,23 @@ def handle_uninstall(config: Config) -> int:
     """
     try:
         import subprocess
-        
+
         # Stop and disable service
-        subprocess.run(
-            ["systemctl", "stop", "cloudflare-ufw-sync"],
-            check=False
-        )
+        subprocess.run(["systemctl", "stop", "cloudflare-ufw-sync"], check=False)
         print("Service stopped")
-        subprocess.run(
-            ["systemctl", "disable", "cloudflare-ufw-sync"],
-            check=False
-        )
+        subprocess.run(["systemctl", "disable", "cloudflare-ufw-sync"], check=False)
         print("Service disabled")
-        
+
         # Remove service file
         service_file = Path("/etc/systemd/system/cloudflare-ufw-sync.service")
         if service_file.exists():
             service_file.unlink()
             print(f"Service file removed: {service_file}")
-            
+
         # Reload systemd
         subprocess.run(["systemctl", "daemon-reload"], check=True)
         print("Systemd daemon reloaded")
-        
+
         return 0
     except Exception as e:
         logger.error(f"Uninstallation failed: {str(e)}")
@@ -287,16 +240,16 @@ def main(args: Optional[List[str]] = None) -> int:
         int: Exit code - 0 for success, 1 for failure.
     """
     parsed_args = parse_args(args)
-    
+
     # Initialize configuration
     config = Config(parsed_args.config)
-    
+
     # Setup logging
     if parsed_args.verbose:
         logging.basicConfig(level=logging.DEBUG)
     else:
         config.setup_logging()
-        
+
     # Handle commands
     if parsed_args.command == "sync":
         return handle_sync(config, parsed_args.force)
