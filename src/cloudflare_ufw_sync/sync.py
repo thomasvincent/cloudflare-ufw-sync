@@ -62,7 +62,7 @@ def get_int_value(value: Any, default: int = 0) -> int:
 
 class SyncService:
     """Service to synchronize Cloudflare IP ranges with UFW rules.
-    
+
     This class handles the synchronization of Cloudflare IP ranges with UFW rules.
     It uses the CloudflareClient to fetch IP ranges and the UFWManager to update
     firewall rules.
@@ -91,21 +91,14 @@ class SyncService:
         self.cloudflare = CloudflareClient(api_key=api_key)
 
         # Get port with proper type conversion - defaulting to 443 because we're fancy HTTPS folks
-        port = get_int_value(
-            self.config.get("ufw", "port"),
-            default=443
-        )
+        port = get_int_value(self.config.get("ufw", "port"), default=443)
 
         # Get protocol - TCP is king, but UDP exists too (I guess)
-        proto = get_str_value(
-            self.config.get("ufw", "proto"),
-            default="tcp"
-        )
+        proto = get_str_value(self.config.get("ufw", "proto"), default="tcp")
 
         # Get comment for our rules so future us knows what the heck these rules are for
         comment = get_str_value(
-            self.config.get("ufw", "comment"),
-            default="Cloudflare IP"
+            self.config.get("ufw", "comment"), default="Cloudflare IP"
         )
 
         # Fire up the UFW manager with all our carefully type-converted settings
@@ -114,7 +107,7 @@ class SyncService:
             proto=proto,
             comment=comment,
         )
-        
+
     def sync(self) -> Dict[str, Any]:
         """Synchronize Cloudflare IP ranges with UFW rules.
 
@@ -159,7 +152,7 @@ class SyncService:
         # Now for the main event: sync those rules!
         # This is where we add new Cloudflare IPs and remove old ones
         added, removed = self.ufw.sync_rules(cloudflare_ips)
-        
+
         # Prepare result
         result: Dict[str, Any] = {
             "status": "success",
@@ -172,12 +165,12 @@ class SyncService:
                 "removed": removed,
             },
         }
-        
+
         logger.info(
             f"Synchronization completed: {added} rules added, {removed} rules removed"
         )
         return result
-        
+
     def run_daemon(self) -> None:
         """Run as a daemon, periodically synchronizing Cloudflare IPs with UFW rules.
 
@@ -191,10 +184,7 @@ class SyncService:
         """
         # Get interval with proper type conversion (default 1 day = 86400 seconds)
         # Fun fact: I always have to Google how many seconds are in a day
-        interval = get_int_value(
-            self.config.get("sync", "interval"),
-            default=86400
-        )
+        interval = get_int_value(self.config.get("sync", "interval"), default=86400)
 
         logger.info(f"Starting daemon with {interval} seconds interval")
 

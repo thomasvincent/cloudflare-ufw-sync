@@ -17,13 +17,15 @@ logger = logging.getLogger(__name__)
 
 class UFWManager:
     """Manages UFW firewall rules for Cloudflare IP ranges.
-    
+
     This class provides methods to add, delete, and synchronize UFW rules for
     Cloudflare IP ranges. It also provides methods to check if UFW is installed
     and enabled, and to set the default policy.
     """
 
-    def __init__(self, port: int = 443, proto: str = "tcp", comment: str = "Cloudflare IP"):
+    def __init__(
+        self, port: int = 443, proto: str = "tcp", comment: str = "Cloudflare IP"
+    ):
         """Initialize UFW manager with port, protocol, and comment.
 
         Setting up our UFW manager - basically preparing to be the bouncer at the firewall door.
@@ -45,7 +47,7 @@ class UFWManager:
         # First things first: make sure UFW is actually installed
         # (you'd be surprised how often people try to configure software that isn't installed)
         self._check_ufw_installed()
-        
+
     def _check_ufw_installed(self) -> None:
         """Check if UFW is installed on the system.
 
@@ -62,7 +64,7 @@ class UFWManager:
                 ["which", "ufw"],
                 check=True,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
             )
         except subprocess.CalledProcessError:
             # UFW is nowhere to be found - time to panic (gracefully)
@@ -153,7 +155,7 @@ class UFWManager:
             f"Found {len(ip_ranges['v4'])} IPv4 and {len(ip_ranges['v6'])} IPv6 rules"
         )
         return ip_ranges
-        
+
     def add_rule(self, ip_range: str) -> bool:
         """Add a UFW rule for the specified IP range.
 
@@ -169,11 +171,16 @@ class UFWManager:
         # Build the UFW command - it's a bit verbose but that's UFW for you
         args = [
             "allow",
-            "proto", self.proto,
-            "from", ip_range,
-            "to", "any",  # "any" because we're allowing them to reach our port
-            "port", str(self.port),
-            "comment", self.comment  # Future us will thank us for this comment
+            "proto",
+            self.proto,
+            "from",
+            ip_range,
+            "to",
+            "any",  # "any" because we're allowing them to reach our port
+            "port",
+            str(self.port),
+            "comment",
+            self.comment,  # Future us will thank us for this comment
         ]
 
         success, output = self._run_ufw_command(args)
@@ -184,7 +191,7 @@ class UFWManager:
             logger.error(f"Failed to add rule for {ip_range}: {output}")
 
         return success
-        
+
     def delete_rule(self, ip_range: str) -> bool:
         """Delete a UFW rule for the specified IP range.
 
@@ -212,7 +219,7 @@ class UFWManager:
             # (to avoid deleting someone else's rules - that would be awkward)
             if ip_range in line and self.comment in line:
                 # Extract the rule number from format like "[12]"
-                match = re.match(r'\[\s*(\d+)\]', line)
+                match = re.match(r"\[\s*(\d+)\]", line)
                 if match:
                     rule_number = match.group(1)
                     break
@@ -231,7 +238,7 @@ class UFWManager:
             logger.error(f"Failed to delete rule for {ip_range}: {output}")
 
         return success
-        
+
     def sync_rules(self, ip_ranges: Dict[str, Set[str]]) -> Tuple[int, int]:
         """Synchronize UFW rules with the provided Cloudflare IP ranges.
 
@@ -274,7 +281,7 @@ class UFWManager:
 
         logger.info(f"Sync completed: {added} rules added, {removed} rules removed")
         return added, removed
-        
+
     def set_policy(self, policy: str) -> bool:
         """Set the default UFW policy for incoming connections.
 
@@ -303,7 +310,7 @@ class UFWManager:
             logger.error(f"Failed to set default policy to {policy}: {output}")
 
         return success
-        
+
     def ensure_enabled(self) -> bool:
         """Ensure UFW is enabled, enabling it if necessary.
 

@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, Set
 
 class CloudflareClient:
     """Client for interacting with Cloudflare API.
-    
+
     This class provides methods to fetch IP ranges from Cloudflare's API.
     It can optionally use an API key for authentication if provided.
     """
@@ -23,8 +23,10 @@ class CloudflareClient:
                 it will be used to authenticate requests to the Cloudflare API.
         """
         self.api_key = api_key
-        
-    def get_ip_ranges(self, ip_types: Optional[List[str]] = None) -> Dict[str, Set[str]]:
+
+    def get_ip_ranges(
+        self, ip_types: Optional[List[str]] = None
+    ) -> Dict[str, Set[str]]:
         """Get Cloudflare IP ranges from the API.
 
         Fetches the current IP ranges used by Cloudflare's network. These IP ranges

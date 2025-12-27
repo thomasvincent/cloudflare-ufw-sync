@@ -45,7 +45,7 @@ DEFAULT_CONFIG = {
 
 class Config:
     """Configuration handler for cloudflare-ufw-sync.
-    
+
     Handles loading and management of configuration values from YAML files.
     Provides access to configuration values and logging setup.
     """
@@ -136,7 +136,9 @@ class Config:
                 # Brand new section from user config - add it wholesale
                 self.config[section] = values
 
-    def get(self, section: str, key: Optional[str] = None) -> Union[Dict, List, str, int, bool, None]:
+    def get(
+        self, section: str, key: Optional[str] = None
+    ) -> Union[Dict, List, str, int, bool, None]:
         """Get configuration value from the loaded config.
 
         Args:
@@ -156,7 +158,10 @@ class Config:
         # If no key specified, return the whole section
         if key is None:
             # Make sure it's a type we can safely return
-            if isinstance(section_value, (dict, list, str, int, bool)) or section_value is None:
+            if (
+                isinstance(section_value, (dict, list, str, int, bool))
+                or section_value is None
+            ):
                 return section_value
             return None  # Unsupported type - better safe than sorry
 
@@ -176,7 +181,7 @@ class Config:
 
     def setup_logging(self) -> None:
         """Configure logging based on configuration.
-        
+
         Sets up console and optional file logging based on the 'logging' section
         of the configuration. Configures log level, format, and handlers.
         """
