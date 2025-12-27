@@ -124,19 +124,29 @@ def test_get_existing_rules_ignores_malformed_lines(mock_run):
     assert "2001:db8::/32" in rules["v6"]
 
 
+import pytest
+
+
 @patch("cloudflare_ufw_sync.ufw.subprocess.run")
-def test_get_existing_rules_ignores_other_ports(mock_run):
-    """Rules that match the comment but different port/proto should be ignored."""
+@pytest.mark.parametrize(
+    "mismatched_line,expected_keep",
+    [
+        ("[ 1] ***********/24  ALLOW IN  tcp/80  from ***********/24  # Cloudflare IP", True),
+        ("[ 1] ***********/24  ALLOW IN  udp/443 from ***********/24  # Cloudflare IP", True),
+    ],
+)
+def test_get_existing_rules_mismatch_filters(mock_run, mismatched_line, expected_keep):
+    """Rules with mismatched proto/port should be ignored while matching ones are kept."""
     mock_run.side_effect = [
         MagicMock(),
-        MagicMock(stdout="""
-[ 1] ***********/24  ALLOW IN  tcp/80  from ***********/24  # Cloudflare IP
+        MagicMock(stdout=f"""
+{mismatched_line}
 [ 2] 2001:db8::/32   ALLOW IN  tcp/443 from 2001:db8::/32   # Cloudflare IP
 """),
     ]
     ufw = UFWManager(port=443, proto="tcp", comment="Cloudflare IP")
     rules = ufw.get_existing_rules()
-    # tcp/80 should be ignored; tcp/443 kept
+    # The mismatched v4 line should be filtered, the matching v6 retained
     assert "***********/24" not in rules["v4"]
     assert "2001:db8::/32" in rules["v6"]
 
