@@ -102,7 +102,7 @@ class CloudflareClient:
                         validated_v4.add(ip_range)
                     except ValueError as e:
                         logger.warning(f"Invalid IPv4 CIDR notation: {ip_range} - {e}")
-                
+
                 ip_ranges["v4"] = validated_v4
                 logger.info(f"Found {len(ip_ranges['v4'])} valid IPv4 ranges")
 
@@ -122,7 +122,7 @@ class CloudflareClient:
                         validated_v6.add(ip_range)
                     except ValueError as e:
                         logger.warning(f"Invalid IPv6 CIDR notation: {ip_range} - {e}")
-                
+
                 ip_ranges["v6"] = validated_v6
                 logger.info(f"Found {len(ip_ranges['v6'])} valid IPv6 ranges")
 
