@@ -1,4 +1,4 @@
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 # Update system packages to get latest security patches
 RUN apt-get update && \
