@@ -252,3 +252,90 @@ def test_ensure_enabled_enable_failure(mock_run, monkeypatch):
     ])
     monkeypatch.setattr(ufw, "_run_ufw_command", lambda args: next(seq))
     assert ufw.ensure_enabled() is False
+
+
+@patch("cloudflare_ufw_sync.ufw.subprocess.run")
+def test_add_ipv6_rule_success(mock_run):
+    """Verify IPv6 rule creation works correctly."""
+    mock_run.side_effect = [
+        MagicMock(),  # which ufw
+        MagicMock(stdout="Rule added"),  # allow
+    ]
+    ufw = UFWManager()
+    assert ufw.add_rule("2001:db8::/32") is True
+
+
+@patch("cloudflare_ufw_sync.ufw.subprocess.run")
+def test_delete_ipv6_rule_success(mock_run):
+    """Verify IPv6 rule deletion works correctly."""
+    mock_run.side_effect = [
+        MagicMock(),  # which ufw
+        MagicMock(
+            stdout="""
+[ 5] 2001:db8::/32  ALLOW IN  tcp/443  from 2001:db8::/32  # Cloudflare IP
+"""
+        ),
+        MagicMock(stdout="Rule deleted"),  # delete 5
+    ]
+    ufw = UFWManager()
+    assert ufw.delete_rule("2001:db8::/32") is True
+
+
+@patch("cloudflare_ufw_sync.ufw.subprocess.run")
+def test_sync_rules_with_ipv6(mock_run):
+    """Test syncing mixed IPv4 and IPv6 rules."""
+    mock_run.side_effect = [
+        MagicMock(),  # which ufw
+        # get_existing_rules call
+        MagicMock(stdout="""
+[ 1] 203.0.113.0/24  ALLOW IN  tcp/443  from 203.0.113.0/24  # Cloudflare IP
+"""),
+        # add_rule calls
+        MagicMock(stdout="Rule added"),  # IPv4
+        MagicMock(stdout="Rule added"),  # IPv6
+    ]
+    ufw = UFWManager()
+    ip_ranges = {
+        "v4": {"203.0.113.0/24", "198.51.100.0/24"},
+        "v6": {"2001:db8::/32"},
+    }
+    added, removed = ufw.sync_rules(ip_ranges)
+    assert added == 2  # One new IPv4 and one IPv6
+    assert removed == 0
+
+
+@patch("cloudflare_ufw_sync.ufw.subprocess.run")
+def test_get_existing_rules_compressed_ipv6(mock_run):
+    """Test parsing compressed IPv6 notation."""
+    mock_run.side_effect = [
+        MagicMock(),  # which ufw
+        MagicMock(stdout="""
+[ 1] 2001:db8::1/128  ALLOW IN  tcp/443  from 2001:db8::1/128  # Cloudflare IP
+[ 2] fe80::/10        ALLOW IN  tcp/443  from fe80::/10         # Cloudflare IP
+"""),
+    ]
+    ufw = UFWManager()
+    rules = ufw.get_existing_rules()
+    assert "2001:db8::1/128" in rules["v6"]
+    assert "fe80::/10" in rules["v6"]
+    assert len(rules["v6"]) == 2
+
+
+@patch("cloudflare_ufw_sync.ufw.subprocess.run")
+def test_sync_rules_ipv6_only(mock_run):
+    """Test syncing only IPv6 rules."""
+    mock_run.side_effect = [
+        MagicMock(),  # which ufw
+        # get_existing_rules call - empty
+        MagicMock(stdout=""),
+        # add_rule calls for IPv6
+        MagicMock(stdout="Rule added"),
+        MagicMock(stdout="Rule added"),
+    ]
+    ufw = UFWManager()
+    ip_ranges = {
+        "v6": {"2001:db8::/32", "2001:db8:1::/48"},
+    }
+    added, removed = ufw.sync_rules(ip_ranges)
+    assert added == 2
+    assert removed == 0

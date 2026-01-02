@@ -63,6 +63,29 @@ sync:
   enabled: true
 ```
 
+### IPv6 Support
+
+The tool fully supports IPv6 addresses with automatic validation and CIDR notation handling:
+
+- **Dual-stack**: Configure both IPv4 and IPv6 by including both `v4` and `v6` in `ip_types`
+- **IPv6-only**: Set `ip_types: [v6]` to synchronize only IPv6 ranges
+- **Validation**: All IPv6 addresses are validated for proper format and CIDR notation
+- **Multiple formats**: Supports compressed (`2001:db8::/32`), full (`2001:0db8:0000:0000:0000:0000:0000:0000/32`), and mixed IPv6 notation
+
+Example IPv6-only configuration:
+
+```yaml
+cloudflare:
+  ip_types:
+    - v6  # IPv6 only
+
+ufw:
+  port: 443
+  proto: tcp
+  comment: "Cloudflare IPv6"
+```
+
+
 ## Usage
 
 ### Command Line

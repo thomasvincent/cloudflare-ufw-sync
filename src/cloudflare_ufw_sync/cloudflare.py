@@ -5,6 +5,7 @@ IP ranges used by Cloudflare's services. These IP ranges can be used to configur
 firewall rules to allow traffic only from Cloudflare.
 """
 
+import ipaddress
 import logging
 from typing import Dict, List, Optional, Set
 
@@ -87,13 +88,43 @@ class CloudflareClient:
 
             # Extract IPv4 ranges if requested
             if "v4" in ip_types and "ipv4_cidrs" in result:
-                ip_ranges["v4"] = set(result["ipv4_cidrs"])
-                logger.info(f"Found {len(ip_ranges['v4'])} IPv4 ranges")
+                ipv4_ranges = result["ipv4_cidrs"]
+                # Validate IPv4 addresses
+                validated_v4 = set()
+                for ip_range in ipv4_ranges:
+                    try:
+                        network = ipaddress.ip_network(ip_range, strict=False)
+                        if network.version != 4:
+                            logger.warning(
+                                f"Expected IPv4 but got IPv{network.version}: {ip_range}"
+                            )
+                            continue
+                        validated_v4.add(ip_range)
+                    except ValueError as e:
+                        logger.warning(f"Invalid IPv4 CIDR notation: {ip_range} - {e}")
+                
+                ip_ranges["v4"] = validated_v4
+                logger.info(f"Found {len(ip_ranges['v4'])} valid IPv4 ranges")
 
             # Extract IPv6 ranges if requested
             if "v6" in ip_types and "ipv6_cidrs" in result:
-                ip_ranges["v6"] = set(result["ipv6_cidrs"])
-                logger.info(f"Found {len(ip_ranges['v6'])} IPv6 ranges")
+                ipv6_ranges = result["ipv6_cidrs"]
+                # Validate IPv6 addresses
+                validated_v6 = set()
+                for ip_range in ipv6_ranges:
+                    try:
+                        network = ipaddress.ip_network(ip_range, strict=False)
+                        if network.version != 6:
+                            logger.warning(
+                                f"Expected IPv6 but got IPv{network.version}: {ip_range}"
+                            )
+                            continue
+                        validated_v6.add(ip_range)
+                    except ValueError as e:
+                        logger.warning(f"Invalid IPv6 CIDR notation: {ip_range} - {e}")
+                
+                ip_ranges["v6"] = validated_v6
+                logger.info(f"Found {len(ip_ranges['v6'])} valid IPv6 ranges")
 
             return ip_ranges
 
