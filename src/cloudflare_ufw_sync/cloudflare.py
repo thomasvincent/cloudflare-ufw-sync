@@ -41,6 +41,34 @@ class CloudflareClient:
         if api_key:
             self.session.headers.update({"Authorization": f"Bearer {api_key}"})
 
+    def _validate_ip_ranges(
+        self, ip_ranges: List[str], expected_version: int, ip_type: str
+    ) -> Set[str]:
+        """Validate IP ranges and filter by expected version.
+
+        Args:
+            ip_ranges: List of IP ranges in CIDR notation to validate.
+            expected_version: Expected IP version (4 or 6).
+            ip_type: IP type string for logging ('IPv4' or 'IPv6').
+
+        Returns:
+            Set of validated IP ranges that match the expected version.
+        """
+        validated = set()
+        for ip_range in ip_ranges:
+            try:
+                network = ipaddress.ip_network(ip_range, strict=False)
+                if network.version != expected_version:
+                    logger.warning(
+                        f"Expected {ip_type} but got IPv{network.version}: {ip_range}"
+                    )
+                    continue
+                validated.add(ip_range)
+            except ValueError as e:
+                logger.warning(f"Invalid {ip_type} CIDR notation: {ip_range} - {e}")
+
+        return validated
+
     def get_ip_ranges(
         self, ip_types: Optional[List[str]] = None
     ) -> Dict[str, Set[str]]:
@@ -89,41 +117,13 @@ class CloudflareClient:
             # Extract IPv4 ranges if requested
             if "v4" in ip_types and "ipv4_cidrs" in result:
                 ipv4_ranges = result["ipv4_cidrs"]
-                # Validate IPv4 addresses
-                validated_v4 = set()
-                for ip_range in ipv4_ranges:
-                    try:
-                        network = ipaddress.ip_network(ip_range, strict=False)
-                        if network.version != 4:
-                            logger.warning(
-                                f"Expected IPv4 but got IPv{network.version}: {ip_range}"
-                            )
-                            continue
-                        validated_v4.add(ip_range)
-                    except ValueError as e:
-                        logger.warning(f"Invalid IPv4 CIDR notation: {ip_range} - {e}")
-
-                ip_ranges["v4"] = validated_v4
+                ip_ranges["v4"] = self._validate_ip_ranges(ipv4_ranges, 4, "IPv4")
                 logger.info(f"Found {len(ip_ranges['v4'])} valid IPv4 ranges")
 
             # Extract IPv6 ranges if requested
             if "v6" in ip_types and "ipv6_cidrs" in result:
                 ipv6_ranges = result["ipv6_cidrs"]
-                # Validate IPv6 addresses
-                validated_v6 = set()
-                for ip_range in ipv6_ranges:
-                    try:
-                        network = ipaddress.ip_network(ip_range, strict=False)
-                        if network.version != 6:
-                            logger.warning(
-                                f"Expected IPv6 but got IPv{network.version}: {ip_range}"
-                            )
-                            continue
-                        validated_v6.add(ip_range)
-                    except ValueError as e:
-                        logger.warning(f"Invalid IPv6 CIDR notation: {ip_range} - {e}")
-
-                ip_ranges["v6"] = validated_v6
+                ip_ranges["v6"] = self._validate_ip_ranges(ipv6_ranges, 6, "IPv6")
                 logger.info(f"Found {len(ip_ranges['v6'])} valid IPv6 ranges")
 
             return ip_ranges
