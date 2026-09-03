@@ -3,6 +3,6 @@ pyyaml>=6.0.2
 pytest>=8.0.0
 pytest-cov>=6.0.0
 black>=26.5.1
-isort>=8.0.1
+isort>=9.0.1
 mypy>=1.10.0
 flake8>=7.3.0
